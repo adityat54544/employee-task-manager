@@ -12,6 +12,7 @@ import { CreateTaskScreen } from "./src/screens/CreateTaskScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { ManageTeamScreen } from "./src/screens/ManageTeamScreen";
+import { AboutCreatorScreen } from "./src/screens/AboutCreatorScreen";
 import { COLORS, GRADIENTS } from "./src/theme/colors";
 
 const MainNavigator = () => {
@@ -23,7 +24,7 @@ const MainNavigator = () => {
   const [selectedTaskProgress, setSelectedTaskProgress] = useState(0);
   const [preselectedEmployeeId, setPreselectedEmployeeId] = useState(null);
 
-  if (!user) return <LoginScreen />;
+  if (!user) return <LoginScreen onNavigateToCreator={() => setCurrentScreen("ABOUT_CREATOR")} />;
 
   const navigateToTaskDetail = (taskId) => {
     setSelectedTaskId(taskId);
@@ -104,18 +105,24 @@ const MainNavigator = () => {
         {currentScreen === "PROFILE" && (
           <ProfileScreen
             onBack={() => setCurrentScreen("DASHBOARD")}
+            onNavigateToCreator={() => setCurrentScreen("ABOUT_CREATOR")}
             onNavigateToLogin={() => {}}
+          />
+        )}
+        {currentScreen === "ABOUT_CREATOR" && (
+          <AboutCreatorScreen
+            onBack={() => setCurrentScreen(user ? "PROFILE" : "DASHBOARD")}
           />
         )}
       </View>
 
-      {/* Bottom Nav — only on primary tabs */}
+      {/* Bottom Navigation */}
       {["DASHBOARD", "TASKS", "CHAT", "PROFILE"].includes(currentScreen) && (
         <View style={styles.bottomNavWrapper}>
           <LinearGradient
             colors={["rgba(19, 28, 49, 0.94)", "rgba(10, 15, 26, 0.98)"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
+            end={{ x: 1, y: 1 }}
             style={styles.bottomNav}
           >
             <TouchableOpacity

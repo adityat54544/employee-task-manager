@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Linking,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { systemAPI } from "../api/endpoints";
@@ -13,7 +14,7 @@ import { GlassButton } from "../components/GlassButton";
 import { ScreenWrapper } from "../components/ScreenWrapper";
 import { COLORS } from "../theme/colors";
 
-export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
+export const ProfileScreen = ({ onBack, onNavigateToCreator, onNavigateToLogin }) => {
   const {
     user,
     demoProfiles,
@@ -47,6 +48,11 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
     setTimeout(() => setFeedbackMsg(""), 3000);
   };
 
+  const handleOpenWhatsApp = () => {
+    const url = "https://wa.me/916390857720?text=Hi%20Aditya,%20I%20reviewed%20your%20TaskMaster%20Pro%20application!";
+    Linking.openURL(url).catch((err) => console.log("WhatsApp open error:", err));
+  };
+
   const handleLogout = () => {
     logout();
   };
@@ -69,6 +75,26 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
           <Text style={styles.feedbackText}>{feedbackMsg}</Text>
         </View>
       ) : null}
+
+      {/* Creator Showcase Banner Card */}
+      <TouchableOpacity activeOpacity={0.85} onPress={onNavigateToCreator}>
+        <GlassCard style={styles.creatorBannerCard} variant="primary" glow={true}>
+          <View style={styles.creatorBannerRow}>
+            <Image
+              source={{ uri: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari" }}
+              style={styles.creatorBannerAvatar}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.creatorBannerTag}>APPLICATION ARCHITECT</Text>
+              <Text style={styles.creatorBannerName}>Created by Aditya Tiwari</Text>
+              <Text style={styles.creatorBannerSub}>Full-Stack Mobile Engineer • View Portfolio ➔</Text>
+            </View>
+            <TouchableOpacity onPress={handleOpenWhatsApp} style={styles.bannerWhatsAppBtn}>
+              <Text style={styles.bannerWhatsAppText}>💬 WhatsApp</Text>
+            </TouchableOpacity>
+          </View>
+        </GlassCard>
+      </TouchableOpacity>
 
       {/* Profile Overview Card */}
       <GlassCard style={styles.profileCard} variant={isManager ? "accent" : "primary"} glow={true}>
@@ -109,7 +135,7 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
 
       {/* System & Cloud Connection Card */}
       <GlassCard style={styles.systemCard}>
-        <Text style={styles.sectionTitle}>⚙️ System & Infrastructure Status</Text>
+        <Text style={styles.sectionTitle}>⚙️ Production Infrastructure Status</Text>
 
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Express REST Backend:</Text>
@@ -129,7 +155,7 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Database Storage Engine:</Text>
           <Text style={[styles.statusValue, { color: COLORS.primary }]}>
-            {dbMode === "cloud_firestore" ? "🔥 Google Cloud Firestore" : "⚡ In-Memory Seed Storage"}
+            {dbMode === "cloud_firestore" ? "🔥 Google Cloud Firestore" : "⚡ High-Fidelity In-Memory Store"}
           </Text>
         </View>
 
@@ -232,6 +258,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     textAlign: "center",
+  },
+  creatorBannerCard: {
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(99, 102, 241, 0.4)",
+  },
+  creatorBannerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  creatorBannerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  creatorBannerTag: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: COLORS.primary,
+    letterSpacing: 0.8,
+  },
+  creatorBannerName: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: COLORS.textPrimary,
+  },
+  creatorBannerSub: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  bannerWhatsAppBtn: {
+    backgroundColor: "rgba(37, 211, 102, 0.18)",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(37, 211, 102, 0.4)",
+  },
+  bannerWhatsAppText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#25D366",
   },
   profileCard: {
     alignItems: "center",

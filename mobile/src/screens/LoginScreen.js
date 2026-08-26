@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
@@ -15,7 +16,7 @@ import { PasswordInput } from "../components/PasswordInput";
 import { ScreenWrapper } from "../components/ScreenWrapper";
 import { COLORS, GRADIENTS } from "../theme/colors";
 
-export const LoginScreen = () => {
+export const LoginScreen = ({ onNavigateToCreator }) => {
   const { login, register, demoLogin, demoProfiles, loading, serverOnline, dbMode } = useAuth();
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -66,6 +67,11 @@ export const LoginScreen = () => {
     await demoLogin(userId);
   };
 
+  const handleOpenWhatsApp = () => {
+    const url = "https://wa.me/916390857720?text=Hi%20Aditya,%20I%20reviewed%20your%20TaskMaster%20Pro%20application!";
+    Linking.openURL(url).catch((err) => console.log("Error opening WhatsApp:", err));
+  };
+
   return (
     <ScreenWrapper scrollable={true} contentContainerStyle={styles.container}>
       {/* Top Branding Section */}
@@ -82,14 +88,26 @@ export const LoginScreen = () => {
         </View>
         <Text style={styles.appTitle}>TaskMaster <Text style={styles.titleGlow}>Pro</Text></Text>
         <Text style={styles.appTagline}>
-          Role-Based Task Management & Daily Progress Tracking
+          Executive Enterprise Task Management & Daily Progress System
         </Text>
+
+        {/* Creator Showcase Chip */}
+        <TouchableOpacity
+          onPress={onNavigateToCreator || handleOpenWhatsApp}
+          activeOpacity={0.8}
+          style={styles.creatorHeroChip}
+        >
+          <Text style={styles.creatorHeroIcon}>👨‍💻</Text>
+          <Text style={styles.creatorHeroText}>
+            Built by <Text style={{ color: COLORS.primary, fontWeight: "900" }}>Aditya Tiwari</Text> • WhatsApp: +91 6390857720
+          </Text>
+        </TouchableOpacity>
 
         {/* Server & DB Status Pill */}
         <View style={styles.statusPillContainer}>
           <View style={[styles.statusDot, { backgroundColor: serverOnline ? COLORS.completed : COLORS.pending }]} />
           <Text style={styles.statusPillText}>
-            Backend: {serverOnline ? "Online" : "Standalone"} • Storage: {dbMode}
+            API Backend: {serverOnline ? "Online" : "Standalone"} • Storage: {dbMode}
           </Text>
         </View>
       </View>
@@ -106,6 +124,7 @@ export const LoginScreen = () => {
         <View style={styles.demoProfilesList}>
           {demoProfiles.map((p) => {
             const isMgr = p.role === "manager";
+            const isAditya = p.name === "Aditya Tiwari";
             return (
               <TouchableOpacity
                 key={p.id}
@@ -114,12 +133,18 @@ export const LoginScreen = () => {
                 style={[
                   styles.demoCard,
                   isMgr ? styles.demoCardManager : styles.demoCardEmployee,
+                  isAditya && styles.demoCardAditya,
                 ]}
               >
                 <Image source={{ uri: p.avatar }} style={styles.demoAvatar} />
                 <View style={styles.demoInfo}>
                   <View style={styles.demoNameRow}>
                     <Text style={styles.demoName}>{p.name}</Text>
+                    {isAditya && (
+                      <View style={styles.creatorTag}>
+                        <Text style={styles.creatorTagText}>CREATOR</Text>
+                      </View>
+                    )}
                     <View
                       style={[
                         styles.demoRoleTag,
@@ -185,7 +210,7 @@ export const LoginScreen = () => {
             <Text style={styles.inputLabel}>Email Address</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. manager@company.com"
+              placeholder="e.g. manager@company.com or aditya@company.com"
               placeholderTextColor={COLORS.textMuted}
               value={email}
               onChangeText={setEmail}
@@ -287,7 +312,7 @@ const styles = StyleSheet.create({
   },
   brandHero: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   logoBadge: {
     width: 58,
@@ -324,16 +349,36 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
+  creatorHeroChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(99, 102, 241, 0.35)",
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 10,
+    gap: 6,
+  },
+  creatorHeroIcon: {
+    fontSize: 12,
+  },
+  creatorHeroText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+  },
   statusPillContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.04)",
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
-    marginTop: 12,
+    marginTop: 8,
   },
   statusDot: {
     width: 7,
@@ -342,7 +387,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   statusPillText: {
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.textSecondary,
     fontWeight: "600",
   },
@@ -383,6 +428,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(99, 102, 241, 0.08)",
     borderColor: "rgba(99, 102, 241, 0.28)",
   },
+  demoCardAditya: {
+    backgroundColor: "rgba(16, 185, 129, 0.10)",
+    borderColor: "rgba(16, 185, 129, 0.4)",
+  },
   demoAvatar: {
     width: 40,
     height: 40,
@@ -403,6 +452,18 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: COLORS.textPrimary,
     marginRight: 8,
+  },
+  creatorTag: {
+    backgroundColor: "rgba(16, 185, 129, 0.25)",
+    paddingVertical: 1,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  creatorTagText: {
+    fontSize: 8,
+    fontWeight: "900",
+    color: "#6EE7B7",
   },
   demoRoleTag: {
     paddingVertical: 2,
