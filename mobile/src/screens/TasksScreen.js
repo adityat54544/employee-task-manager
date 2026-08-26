@@ -22,8 +22,7 @@ import { ScreenWrapper } from "../components/ScreenWrapper";
 import { Header } from "../components/Header";
 import { COLORS } from "../theme/colors";
 
-const STATUS_FILTERS = ["All", "Pending", "In Progress", "Completed"];
-const PRIORITY_FILTERS = ["All", "High", "Medium", "Low"];
+const STATUS_FILTERS = ["All", "Pending", "In Progress", "Completed", "Blocked"];
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
   { label: "🔥 Priority", value: "priority_desc" },
@@ -47,9 +46,9 @@ export const TasksScreen = ({
   const [selectedSort, setSelectedSort] = useState("newest");
   const [selectedAssignee, setSelectedAssignee] = useState("All");
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const params = {};
       if (selectedStatus !== "All") params.status = selectedStatus;
       if (selectedPriority !== "All") params.priority = selectedPriority;
@@ -64,18 +63,23 @@ export const TasksScreen = ({
     } catch (err) {
       console.log("Error fetching tasks:", err.message);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
       setRefreshing(false);
     }
   };
 
+  // Instant real-time background sync every 2.5 seconds
   useEffect(() => {
-    fetchTasks();
+    fetchTasks(false);
+    const interval = setInterval(() => {
+      fetchTasks(true);
+    }, 2500);
+    return () => clearInterval(interval);
   }, [selectedStatus, selectedPriority, selectedAssignee, selectedSort, searchQuery, user]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchTasks();
+    fetchTasks(false);
   };
 
   const handleQuickStatusTransition = async (task) => {
@@ -83,22 +87,23 @@ export const TasksScreen = ({
       Pending: "In Progress",
       "In Progress": "Completed",
       Completed: "Pending",
+      Blocked: "In Progress",
     };
     const nextStatus = nextStatusMap[task.status] || "In Progress";
     try {
       await tasksAPI.updateStatus(task.id, nextStatus);
-      fetchTasks();
+      fetchTasks(true);
     } catch (err) {
       console.log("Quick status toggle error:", err.message);
     }
   };
 
   const renderTaskCard = ({ item: t, index }) => (
-    <AnimatedCard delay={index * 60}>
+    <AnimatedCard delay={index * 50}>
       <GlassCard
         style={styles.taskCard}
         onPress={() => onNavigateToTaskDetail(t.id)}
-        variant={t.priority === "High" ? "danger" : "default"}
+        variant={t.status === "Blocked" ? "danger" : t.priority === "High" ? "primary" : "default"}
       >
         <View style={styles.cardTopRow}>
           <View style={styles.badgeRow}>
@@ -123,7 +128,7 @@ export const TasksScreen = ({
             />
             <View>
               <Text style={styles.assigneeLabel}>Assigned to</Text>
-              <Text style={styles.assigneeName}>{t.assignedToName}</Text>
+              <Text style={styles.assigneeName}>{t.assignedToName || "Unassigned"}</Text>
             </View>
           </View>
 
@@ -153,7 +158,7 @@ export const TasksScreen = ({
             {isManager ? "Team Tasks & Sprints" : "My Task Queue"}
           </Text>
           <Text style={styles.pageSubtitle}>
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} matched
+            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} matched • Real-time Sync
           </Text>
         </View>
 
@@ -216,7 +221,7 @@ export const TasksScreen = ({
         />
       </View>
 
-      {/* Sort & Assignee Filter Row */}
+      {/* Sort Row */}
       <View style={styles.sortRow}>
         <Text style={styles.sortLabel}>Sort By:</Text>
         {SORT_OPTIONS.map((opt) => (
@@ -265,19 +270,6 @@ export const TasksScreen = ({
                 ? "Click '+ New Task' above to assign your first task"
                 : "You're all caught up! No active tasks assigned"}
             </Text>
-            {(searchQuery || selectedStatus !== "All" || selectedPriority !== "All") && (
-              <TouchableOpacity
-                onPress={() => {
-                  setSearchQuery("");
-                  setSelectedStatus("All");
-                  setSelectedPriority("All");
-                  setSelectedSort("newest");
-                }}
-                style={styles.resetBtn}
-              >
-                <Text style={styles.resetBtnText}>Reset All Filters</Text>
-              </TouchableOpacity>
-            )}
           </GlassCard>
         }
       />
@@ -491,19 +483,5 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: "center",
     lineHeight: 18,
-    marginBottom: 16,
-  },
-  resetBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  resetBtnText: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: "700",
   },
 });

@@ -94,6 +94,24 @@ async function register(req, res) {
     };
 
     await db.collection("users").doc(userId).set(newUser);
+
+    // Broadcast registration event to Workplace Activity Stream
+    const auditId = "audit_" + uuidv4().substring(0, 8);
+    await db.collection("updates").doc(auditId).set({
+      id: auditId,
+      taskId: "general_org",
+      taskTitle: "Workplace Roster Update",
+      userId: userId,
+      userName: name.trim(),
+      userAvatar: newUser.avatar,
+      note: `👋 New Team Member: ${name.trim()} joined the organization as ${newUser.role.toUpperCase()} (${department.trim()}).`,
+      previousProgress: 0,
+      newProgress: 100,
+      hoursSpent: 0,
+      isBlocker: false,
+      createdAt: new Date().toISOString(),
+    });
+
     const token = generateToken(newUser);
     const profile = { ...newUser };
     delete profile.password;
@@ -109,7 +127,7 @@ async function register(req, res) {
   }
 }
 
-// Update Employee Presence / Attendance Status (Online, In Focus, Break, Out of Office)
+// Update Employee Presence / Attendance Status
 async function updatePresence(req, res) {
   try {
     const { presence = "online", statusMessage = "" } = req.body;
@@ -169,6 +187,24 @@ async function createEmployeeByManager(req, res) {
     };
 
     await db.collection("users").doc(userId).set(newEmployee);
+
+    // Transparency Broadcast in Activity Stream
+    const auditId = "audit_" + uuidv4().substring(0, 8);
+    await db.collection("updates").doc(auditId).set({
+      id: auditId,
+      taskId: "general_org",
+      taskTitle: "Workplace Roster Update",
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      note: `✨ Manager ${req.user.name} onboarded ${name.trim()} (${department.trim()}) to the team.`,
+      previousProgress: 0,
+      newProgress: 100,
+      hoursSpent: 0,
+      isBlocker: false,
+      createdAt: new Date().toISOString(),
+    });
+
     const profile = { ...newEmployee };
     delete profile.password;
 
@@ -255,7 +291,7 @@ async function updateEmployee(req, res) {
   }
 }
 
-// Manager: Delete Employee Account
+// Manager: Delete Employee Account with FULL WORKPLACE TRANSPARENCY NOTICE
 async function deleteEmployee(req, res) {
   try {
     const { id } = req.params;
@@ -267,23 +303,64 @@ async function deleteEmployee(req, res) {
     const emp = empDoc.data();
     if (emp.role === "manager") return res.status(403).json({ success: false, message: "Cannot delete manager accounts." });
 
-    // Unassign their tasks
+    // Unassign their tasks with transparency audit
     const tasksSnap = await db.collection("tasks").where("assignedToId", "==", id).get();
     const batch = [];
+    const taskTitles = [];
     tasksSnap.forEach((doc) => {
+      const t = doc.data();
+      taskTitles.push(t.title);
       batch.push(db.collection("tasks").doc(doc.id).update({
-        assignedToName: `[Unassigned — ${emp.name} removed]`,
+        assignedToName: `[Unassigned — ${emp.name} removed by Manager]`,
         assignedToId: null,
         updatedAt: new Date().toISOString(),
       }));
     });
     await Promise.all(batch);
 
+    // Delete user
     await db.collection("users").doc(id).delete();
+
+    // TRANSPARENCY AUDIT: Broadcast offboarding event to Workplace Activity Stream & Chat
+    const noticeText = `📢 Workplace Notice: ${emp.name} (${emp.department || "Employee"}) was removed from the team by Manager ${req.user.name}. ${tasksSnap.size} assigned task(s) (${taskTitles.slice(0, 2).join(", ") || "none"}) are now Unassigned.`;
+
+    const auditId = "audit_" + uuidv4().substring(0, 8);
+    await db.collection("updates").doc(auditId).set({
+      id: auditId,
+      taskId: "general_org",
+      taskTitle: "Workplace Roster Notice",
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      note: noticeText,
+      previousProgress: 0,
+      newProgress: 0,
+      hoursSpent: 0,
+      isBlocker: false,
+      createdAt: new Date().toISOString(),
+    });
+
+    // Also send an automated announcement message into #general chat
+    const chatMsgId = "msg_" + uuidv4().substring(0, 8);
+    await db.collection("messages").doc(chatMsgId).set({
+      id: chatMsgId,
+      channel: "general",
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      userRole: "manager",
+      userDepartment: "Engineering Lead",
+      text: noticeText,
+      isAnnouncement: true,
+      isPinned: false,
+      reactions: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
     return res.json({
       success: true,
-      message: `Employee ${emp.name}'s account has been removed.`,
+      message: `Employee ${emp.name}'s account has been removed. All team members notified transparently.`,
       deletedName: emp.name,
       tasksUnassigned: batch.length,
     });

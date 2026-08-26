@@ -46,7 +46,7 @@ async function getDashboardStats(req, res) {
       offline: employees.filter((e) => e.presence === "offline" || e.presence === "leave").length,
     };
 
-    // Team member workload breakdown (For Managers)
+    // Team member workload breakdown (For Managers & Team overview)
     let teamBreakdown = [];
     if (isManager) {
       teamBreakdown = employees.map((emp) => {
@@ -75,9 +75,9 @@ async function getDashboardStats(req, res) {
       });
     }
 
-    // Recent activity updates (last 6)
+    // Recent activity updates (last 10 transparency updates)
     updates.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const recentActivity = updates.slice(0, 6);
+    const recentActivity = updates.slice(0, 10);
 
     return res.json({
       success: true,

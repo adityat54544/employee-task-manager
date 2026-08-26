@@ -34,9 +34,9 @@ export const DashboardScreen = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const [statsRes, tasksRes] = await Promise.all([
         analyticsAPI.getDashboardStats().catch(() => null),
         tasksAPI.getTasks().catch(() => null),
@@ -66,18 +66,23 @@ export const DashboardScreen = ({
     } catch (err) {
       console.log("Dashboard fetch error:", err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
       setRefreshing(false);
     }
   };
 
+  // Instant real-time background sync every 2.5 seconds
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(false);
+    const interval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 2500);
+    return () => clearInterval(interval);
   }, [user]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchDashboardData();
+    fetchDashboardData(false);
   };
 
   return (
@@ -105,7 +110,7 @@ export const DashboardScreen = ({
               </Text>
               <Text style={styles.heroDesc}>
                 {isManager
-                  ? "Track overall team velocity, presence & blocker resolution"
+                  ? "Track overall team velocity, live presence & transparency notices"
                   : "Finish assigned sprint tasks and log work updates daily"}
               </Text>
             </View>
@@ -129,7 +134,7 @@ export const DashboardScreen = ({
         </GlassCard>
       </AnimatedCard>
 
-      {/* Live Company Presence & Attendance Strip */}
+      {/* Live Company Presence & Shift Tracker */}
       <AnimatedCard delay={150}>
         <GlassCard style={styles.presenceStrip} variant="default">
           <View style={styles.presenceHeader}>
@@ -312,40 +317,51 @@ export const DashboardScreen = ({
         </View>
       </AnimatedCard>
 
-      {/* Live Updates Stream */}
+      {/* 🔔 Live Workplace Transparency & Audit Feed */}
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
         <AnimatedCard delay={400}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⚡ Live Team Progress Updates</Text>
+              <Text style={styles.sectionTitle}>🔔 Workplace Transparency & Audit Feed</Text>
+              <Text style={styles.feedLiveTag}>LIVE SYNC</Text>
             </View>
 
-            {stats.recentActivity.map((act) => (
-              <GlassCard key={act.id} style={styles.activityCard}>
-                <View style={styles.activityRow}>
-                  <Image source={{ uri: act.userAvatar }} style={styles.activityAvatar} />
-                  <View style={styles.activityInfo}>
-                    <View style={styles.activityTop}>
-                      <Text style={styles.activityUser}>{act.userName}</Text>
-                      <Text style={styles.activityTime}>
-                        {new Date(act.createdAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
+            {stats.recentActivity.map((act) => {
+              const isNotice = act.note.includes("📢") || act.note.includes("🔄") || act.note.includes("✨") || act.note.includes("🗑️");
+              return (
+                <GlassCard
+                  key={act.id}
+                  style={[styles.activityCard, isNotice && styles.activityCardNotice]}
+                  variant={isNotice ? "amber" : "default"}
+                >
+                  <View style={styles.activityRow}>
+                    <Image source={{ uri: act.userAvatar }} style={styles.activityAvatar} />
+                    <View style={styles.activityInfo}>
+                      <View style={styles.activityTop}>
+                        <Text style={styles.activityUser}>{act.userName}</Text>
+                        <Text style={styles.activityTime}>
+                          {new Date(act.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </Text>
+                      </View>
+                      <Text style={styles.activityTaskTitle}>{act.taskTitle}</Text>
+                      <Text style={[styles.activityNote, isNotice && styles.activityNoteBold]}>
+                        {act.note}
                       </Text>
-                    </View>
-                    <Text style={styles.activityTaskTitle}>{act.taskTitle}</Text>
-                    <Text style={styles.activityNote}>"{act.note}"</Text>
-                    <View style={styles.activityMetaRow}>
-                      <Text style={styles.activityProgressPill}>
-                        {act.previousProgress}% ➔ {act.newProgress}%
-                      </Text>
-                      <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs</Text>
+                      {!isNotice && (
+                        <View style={styles.activityMetaRow}>
+                          <Text style={styles.activityProgressPill}>
+                            {act.previousProgress}% ➔ {act.newProgress}%
+                          </Text>
+                          {act.hoursSpent > 0 && (
+                            <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs</Text>
+                          )}
+                        </View>
+                      )}
                     </View>
                   </View>
-                </View>
-              </GlassCard>
-            ))}
+                </GlassCard>
+              );
+            })}
           </View>
         </AnimatedCard>
       )}
@@ -385,6 +401,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 24 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingHorizontal: 2 },
   sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary, letterSpacing: 0.3 },
+  feedLiveTag: { fontSize: 9, fontWeight: "900", color: COLORS.completed, backgroundColor: "rgba(16, 185, 129, 0.12)", paddingVertical: 2, paddingHorizontal: 6, borderRadius: 4 },
   viewAllText: { fontSize: 13, color: COLORS.primary, fontWeight: "700" },
   teamList: { gap: 10 },
   teamCard: { padding: 14 },
@@ -410,14 +427,16 @@ const styles = StyleSheet.create({
   assigneeName: { fontSize: 12, color: COLORS.textPrimary, fontWeight: "700" },
   hoursText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: "600" },
   activityCard: { padding: 14, marginBottom: 10 },
+  activityCardNotice: { backgroundColor: "rgba(245, 158, 11, 0.10)", borderColor: "rgba(245, 158, 11, 0.35)" },
   activityRow: { flexDirection: "row" },
   activityAvatar: { width: 34, height: 34, borderRadius: 17, marginRight: 12, marginTop: 2 },
   activityInfo: { flex: 1 },
   activityTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 },
   activityUser: { fontSize: 13, fontWeight: "800", color: COLORS.textPrimary },
-  activityTime: { fontSize: 11, color: COLORS.textMuted },
+  activityTime: { fontSize: 10, color: COLORS.textMuted },
   activityTaskTitle: { fontSize: 12, fontWeight: "700", color: COLORS.primary, marginBottom: 4 },
-  activityNote: { fontSize: 12, color: COLORS.textSecondary, fontStyle: "italic", lineHeight: 17, marginBottom: 6 },
+  activityNote: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 17, marginBottom: 6 },
+  activityNoteBold: { color: COLORS.textPrimary, fontWeight: "700" },
   activityMetaRow: { flexDirection: "row", gap: 8 },
   activityProgressPill: { fontSize: 11, color: COLORS.completed, backgroundColor: "rgba(16, 185, 129, 0.12)", paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6, fontWeight: "800" },
   activityHoursPill: { fontSize: 11, color: COLORS.textSecondary, backgroundColor: "rgba(255, 255, 255, 0.06)", paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6, fontWeight: "600" },

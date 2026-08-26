@@ -150,6 +150,24 @@ async function createTask(req, res) {
 
     await db.collection("tasks").doc(taskId).set(newTask);
 
+    // Transparency Audit Notice
+    const auditId = "audit_" + uuidv4().substring(0, 8);
+    const assignmentNote = `📋 New Task Assigned: Manager ${req.user.name} assigned '${newTask.title}' to ${assigneeData.name} (Priority: ${newTask.priority}, Deadline: ${newTask.deadline}).`;
+    await db.collection("updates").doc(auditId).set({
+      id: auditId,
+      taskId: taskId,
+      taskTitle: newTask.title,
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      note: assignmentNote,
+      previousProgress: 0,
+      newProgress: 0,
+      hoursSpent: 0,
+      isBlocker: false,
+      createdAt: new Date().toISOString(),
+    });
+
     return res.status(201).json({
       success: true,
       message: `Task successfully assigned to ${assigneeData.name}!`,
@@ -161,7 +179,7 @@ async function createTask(req, res) {
   }
 }
 
-// PUT /api/tasks/:id (Manager Power: Edit Pre-existing Task Specifications & Reassign)
+// PUT /api/tasks/:id (Manager Power: Edit Pre-existing Task Specifications & Reassign with Transparency)
 async function updateTask(req, res) {
   try {
     const { id } = req.params;
@@ -183,24 +201,63 @@ async function updateTask(req, res) {
     if (progress !== undefined) updateData.progress = Number(progress);
     if (status) updateData.status = status;
 
+    let reassignmentNotice = "";
+
     // Handle employee reassignment if assignedToId changed
     if (assignedToId && assignedToId !== currentTask.assignedToId) {
       const assigneeDoc = await db.collection("users").doc(assignedToId).get();
       if (assigneeDoc.exists) {
         const assigneeData = assigneeDoc.data();
+        const prevAssigneeName = currentTask.assignedToName || "Unassigned";
         updateData.assignedToId = assigneeData.id;
         updateData.assignedToName = assigneeData.name;
         updateData.assignedToAvatar = assigneeData.avatar;
+
+        reassignmentNotice = `🔄 Task Reassigned: '${currentTask.title}' was reassigned from ${prevAssigneeName} to ${assigneeData.name} by Manager ${req.user.name}.`;
+
+        // Log Transparency Audit Notice
+        const auditId = "audit_" + uuidv4().substring(0, 8);
+        await db.collection("updates").doc(auditId).set({
+          id: auditId,
+          taskId: id,
+          taskTitle: currentTask.title,
+          userId: req.user.id,
+          userName: req.user.name,
+          userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+          note: reassignmentNotice,
+          previousProgress: currentTask.progress,
+          newProgress: currentTask.progress,
+          hoursSpent: 0,
+          isBlocker: false,
+          createdAt: new Date().toISOString(),
+        });
+
+        // Broadcast to general chat so both employees know immediately
+        const chatMsgId = "msg_" + uuidv4().substring(0, 8);
+        await db.collection("messages").doc(chatMsgId).set({
+          id: chatMsgId,
+          channel: "general",
+          userId: req.user.id,
+          userName: req.user.name,
+          userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+          userRole: "manager",
+          userDepartment: "Engineering Lead",
+          text: reassignmentNotice,
+          isAnnouncement: true,
+          isPinned: false,
+          reactions: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       }
     }
 
     await db.collection("tasks").doc(id).update(updateData);
-
     const updated = { ...currentTask, ...updateData };
 
     return res.json({
       success: true,
-      message: `Task "${updated.title}" updated successfully!`,
+      message: reassignmentNotice || `Task "${updated.title}" updated successfully!`,
       task: updated,
     });
   } catch (error) {
@@ -263,7 +320,7 @@ async function updateTaskStatus(req, res) {
         : normalizedStatus === "In Progress"
         ? `⚡ Started working on task (Status: In Progress)`
         : normalizedStatus === "Blocked"
-        ? `🚨 Blocker reported by ${req.user.name} — requires attention`
+        ? `🚨 Blocker reported by ${req.user.name} — requires manager attention`
         : `⏳ Task reset to Pending`
     );
 
@@ -284,6 +341,26 @@ async function updateTaskStatus(req, res) {
     };
 
     await db.collection("updates").doc(updateId).set(logItem);
+
+    // If milestone completed or blocked, broadcast to general chat for full transparency
+    if (normalizedStatus === "Completed" || normalizedStatus === "Blocked") {
+      const broadcastMsgId = "msg_" + uuidv4().substring(0, 8);
+      await db.collection("messages").doc(broadcastMsgId).set({
+        id: broadcastMsgId,
+        channel: "general",
+        userId: req.user.id,
+        userName: req.user.name,
+        userAvatar: req.user.avatar || `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(req.user.name)}`,
+        userRole: req.user.role,
+        userDepartment: req.user.department,
+        text: autoNote,
+        isAnnouncement: normalizedStatus === "Blocked",
+        isPinned: false,
+        reactions: normalizedStatus === "Completed" ? { "🚀": [req.user.id] } : {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
 
     return res.json({
       success: true,
@@ -348,7 +425,25 @@ async function deleteTask(req, res) {
       return res.status(404).json({ success: false, message: "Task not found." });
     }
 
+    const task = taskDoc.data();
     await db.collection("tasks").doc(id).delete();
+
+    // Transparency broadcast
+    const auditId = "audit_" + uuidv4().substring(0, 8);
+    await db.collection("updates").doc(auditId).set({
+      id: auditId,
+      taskId: id,
+      taskTitle: task.title,
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      note: `🗑️ Task Removed: '${task.title}' was deleted from active sprint by Manager ${req.user.name}.`,
+      previousProgress: 0,
+      newProgress: 0,
+      hoursSpent: 0,
+      isBlocker: false,
+      createdAt: new Date().toISOString(),
+    });
 
     return res.json({
       success: true,
