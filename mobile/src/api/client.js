@@ -1,6 +1,6 @@
 ﻿import axios from "axios";
 import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import appStorage from "../utils/storage";
 
 // Production Render Cloud API URL or Environment Variable
 export const PRODUCTION_API_URL = "https://employee-task-manager-api.onrender.com/api";
@@ -32,12 +32,12 @@ export const updateCustomApiUrl = async (newUrl) => {
   const formatted = newUrl.endsWith("/api") ? newUrl : `${newUrl.replace(/\/$/, "")}/api`;
   API_BASE_URL = formatted;
   apiClient.defaults.baseURL = formatted;
-  await AsyncStorage.setItem("taskmaster_custom_api_url", formatted);
+  await appStorage.setItem("taskmaster_custom_api_url", formatted);
 };
 
 export const loadSavedApiUrl = async () => {
   try {
-    const saved = await AsyncStorage.getItem("taskmaster_custom_api_url");
+    const saved = await appStorage.getItem("taskmaster_custom_api_url");
     if (saved) {
       API_BASE_URL = saved;
       apiClient.defaults.baseURL = saved;

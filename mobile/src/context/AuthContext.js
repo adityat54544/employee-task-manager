@@ -1,5 +1,5 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import appStorage from "../utils/storage";
 import { authAPI, systemAPI } from "../api/endpoints";
 
 const AuthContext = createContext(null);
@@ -56,8 +56,8 @@ export const AuthProvider = ({ children }) => {
   const loadStoredSession = async () => {
     try {
       setLoading(true);
-      const storedToken = await AsyncStorage.getItem("taskmaster_token");
-      const storedUser = await AsyncStorage.getItem("taskmaster_user");
+      const storedToken = await appStorage.getItem("taskmaster_token");
+      const storedUser = await appStorage.getItem("taskmaster_user");
 
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -82,8 +82,8 @@ export const AuthProvider = ({ children }) => {
       if (res.success && res.token && res.user) {
         setToken(res.token);
         setUser(res.user);
-        await AsyncStorage.setItem("taskmaster_token", res.token);
-        await AsyncStorage.setItem("taskmaster_user", JSON.stringify(res.user));
+        await appStorage.setItem("taskmaster_token", res.token);
+        await appStorage.setItem("taskmaster_user", JSON.stringify(res.user));
         return { success: true };
       }
       return { success: false, message: res.message || "Invalid credentials." };
@@ -104,16 +104,15 @@ export const AuthProvider = ({ children }) => {
       if (res.success && res.token && res.user) {
         setToken(res.token);
         setUser(res.user);
-        await AsyncStorage.setItem("taskmaster_token", res.token);
-        await AsyncStorage.setItem("taskmaster_user", JSON.stringify(res.user));
+        await appStorage.setItem("taskmaster_token", res.token);
+        await appStorage.setItem("taskmaster_user", JSON.stringify(res.user));
         return { success: true };
       }
     } catch (err) {
-      // Fallback
       const matched = FALLBACK_PROFILES.find((p) => p.id === userId) || FALLBACK_PROFILES[0];
       setUser(matched);
       setToken("fallback_jwt_demo_token");
-      await AsyncStorage.setItem("taskmaster_user", JSON.stringify(matched));
+      await appStorage.setItem("taskmaster_user", JSON.stringify(matched));
       return { success: true };
     } finally {
       setLoading(false);
@@ -127,8 +126,8 @@ export const AuthProvider = ({ children }) => {
       if (res.success && res.token && res.user) {
         setToken(res.token);
         setUser(res.user);
-        await AsyncStorage.setItem("taskmaster_token", res.token);
-        await AsyncStorage.setItem("taskmaster_user", JSON.stringify(res.user));
+        await appStorage.setItem("taskmaster_token", res.token);
+        await appStorage.setItem("taskmaster_user", JSON.stringify(res.user));
         return { success: true };
       }
       return { success: false, message: res.message || "Registration failed." };
@@ -144,8 +143,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem("taskmaster_token");
-      await AsyncStorage.removeItem("taskmaster_user");
+      await appStorage.removeItem("taskmaster_token");
+      await appStorage.removeItem("taskmaster_user");
       setToken(null);
       setUser(null);
     } catch (e) {
