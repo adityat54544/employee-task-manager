@@ -1,121 +1,96 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authAPI, systemAPI } from "../api/endpoints";
-import { setAuthToken } from "../api/client";
 
 const AuthContext = createContext(null);
 
-const DEFAULT_DEMO_PROFILES = [
+const FALLBACK_PROFILES = [
   {
     id: "user_manager_1",
     name: "Sarah Jenkins",
     email: "manager@company.com",
     role: "manager",
-    department: "Engineering Lead",
+    department: "Engineering Lead & Product Manager",
     employeeCode: "MGR-001",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    presence: "online",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
   },
   {
-    id: "user_emp_1",
-    name: "Rahul Sharma",
-    email: "rahul@company.com",
+    id: "user_emp_aditya",
+    name: "Aditya Tiwari",
+    email: "aditya@company.com",
     role: "employee",
-    department: "Mobile Frontend Engineer",
-    employeeCode: "EMP-104",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "user_emp_2",
-    name: "Alex Chen",
-    email: "alex@company.com",
-    role: "employee",
-    department: "Backend & Cloud Engineer",
-    employeeCode: "EMP-108",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-  },
-  {
-    id: "user_emp_3",
-    name: "Priya Patel",
-    email: "priya@company.com",
-    role: "employee",
-    department: "UI/UX & Design Systems",
-    employeeCode: "EMP-112",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+    department: "Lead Full Stack & Mobile App Engineer",
+    employeeCode: "EMP-101",
+    presence: "focus",
+    avatar: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari",
   },
 ];
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [demoProfiles, setDemoProfiles] = useState(DEFAULT_DEMO_PROFILES);
-  const [loading, setLoading] = useState(false);
+  const [demoProfiles, setDemoProfiles] = useState(FALLBACK_PROFILES);
+  const [loading, setLoading] = useState(true);
   const [serverOnline, setServerOnline] = useState(false);
-  const [dbMode, setDbMode] = useState("Checking...");
+  const [dbMode, setDbMode] = useState("in_memory");
 
-  // Check health and fetch demo profiles
-  useEffect(() => {
-    checkServerConnection();
-  }, []);
-
-  const checkServerConnection = async () => {
+  const checkHealthAndProfiles = async () => {
     try {
-      const health = await systemAPI.getHealth();
-      setServerOnline(true);
-      setDbMode(health.database?.mode || "online");
-
+      const healthRes = await systemAPI.getHealth();
+      if (healthRes && healthRes.status === "online") {
+        setServerOnline(true);
+        setDbMode(healthRes.database?.mode || "in_memory");
+      }
       const profilesRes = await authAPI.getDemoProfiles();
-      if (profilesRes && profilesRes.profiles) {
+      if (profilesRes && profilesRes.profiles && profilesRes.profiles.length > 0) {
         setDemoProfiles(profilesRes.profiles);
       }
-    } catch (err) {
-      console.log("Server health check:", err.message);
+    } catch (e) {
+      console.log("Using standalone demo mode.");
       setServerOnline(false);
-      setDbMode("Standalone Demo Mode");
+      setDemoProfiles(FALLBACK_PROFILES);
     }
   };
 
-  const login = async (email, password) => {
-    setLoading(true);
+  const loadStoredSession = async () => {
     try {
-      const res = await authAPI.login(email, password);
-      if (res.success && res.token) {
-        setAuthToken(res.token);
-        setToken(res.token);
-        setUser(res.user);
-        return { success: true, user: res.user };
+      setLoading(true);
+      const storedToken = await AsyncStorage.getItem("taskmaster_token");
+      const storedUser = await AsyncStorage.getItem("taskmaster_user");
+
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
       }
-      return { success: false, message: res.message || "Login failed." };
-    } catch (error) {
-      // Fallback for standalone offline testing
-      const matched = demoProfiles.find((p) => p.email.toLowerCase() === email.toLowerCase());
-      if (matched) {
-        setUser(matched);
-        setToken("mock_jwt_token_" + matched.id);
-        return { success: true, user: matched };
-      }
-      return {
-        success: false,
-        message: error.response?.data?.message || "Invalid email or password.",
-      };
+    } catch (e) {
+      console.log("Error loading session:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (userData) => {
-    setLoading(true);
+  useEffect(() => {
+    checkHealthAndProfiles();
+    loadStoredSession();
+  }, []);
+
+  const login = async (email, password) => {
     try {
-      const res = await authAPI.register(userData);
-      if (res.success && res.token) {
-        setAuthToken(res.token);
+      setLoading(true);
+      const res = await authAPI.login(email, password);
+      if (res.success && res.token && res.user) {
         setToken(res.token);
         setUser(res.user);
-        return { success: true, user: res.user };
+        await AsyncStorage.setItem("taskmaster_token", res.token);
+        await AsyncStorage.setItem("taskmaster_user", JSON.stringify(res.user));
+        return { success: true };
       }
-      return { success: false, message: res.message || "Registration failed." };
-    } catch (error) {
+      return { success: false, message: res.message || "Invalid credentials." };
+    } catch (err) {
       return {
         success: false,
-        message: error.response?.data?.message || "Registration error.",
+        message: err.response?.data?.message || "Server connection failed.",
       };
     } finally {
       setLoading(false);
@@ -123,31 +98,59 @@ export const AuthProvider = ({ children }) => {
   };
 
   const demoLogin = async (userId) => {
-    setLoading(true);
     try {
+      setLoading(true);
       const res = await authAPI.demoLogin(userId);
-      if (res.success && res.token) {
-        setAuthToken(res.token);
+      if (res.success && res.token && res.user) {
         setToken(res.token);
         setUser(res.user);
-        return { success: true, user: res.user };
+        await AsyncStorage.setItem("taskmaster_token", res.token);
+        await AsyncStorage.setItem("taskmaster_user", JSON.stringify(res.user));
+        return { success: true };
       }
-    } catch (error) {
-      console.log("API demo login error, using local fallback profile:", error.message);
+    } catch (err) {
+      // Fallback
+      const matched = FALLBACK_PROFILES.find((p) => p.id === userId) || FALLBACK_PROFILES[0];
+      setUser(matched);
+      setToken("fallback_jwt_demo_token");
+      await AsyncStorage.setItem("taskmaster_user", JSON.stringify(matched));
+      return { success: true };
+    } finally {
+      setLoading(false);
     }
-
-    // Local instant fallback
-    const matched = demoProfiles.find((p) => p.id === userId) || demoProfiles[0];
-    setUser(matched);
-    setToken("mock_jwt_token_" + matched.id);
-    setLoading(false);
-    return { success: true, user: matched };
   };
 
-  const logout = () => {
-    setAuthToken(null);
-    setToken(null);
-    setUser(null);
+  const register = async (userData) => {
+    try {
+      setLoading(true);
+      const res = await authAPI.register(userData);
+      if (res.success && res.token && res.user) {
+        setToken(res.token);
+        setUser(res.user);
+        await AsyncStorage.setItem("taskmaster_token", res.token);
+        await AsyncStorage.setItem("taskmaster_user", JSON.stringify(res.user));
+        return { success: true };
+      }
+      return { success: false, message: res.message || "Registration failed." };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.response?.data?.message || "Registration failed.",
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem("taskmaster_token");
+      await AsyncStorage.removeItem("taskmaster_user");
+      setToken(null);
+      setUser(null);
+    } catch (e) {
+      console.log("Logout error:", e);
+    }
   };
 
   const isManager = user?.role === "manager";
@@ -163,10 +166,10 @@ export const AuthProvider = ({ children }) => {
         dbMode,
         isManager,
         login,
-        register,
         demoLogin,
+        register,
         logout,
-        checkServerConnection,
+        refreshProfiles: checkHealthAndProfiles,
       }}
     >
       {children}
