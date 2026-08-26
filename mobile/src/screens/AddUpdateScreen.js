@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
-  Alert,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { updatesAPI } from "../api/endpoints";
@@ -57,7 +56,6 @@ export const AddUpdateScreen = ({
       }
     } catch (err) {
       console.log("Submit work update error:", err.message);
-      // Optimistic callback
       onUpdateSubmitted();
     } finally {
       setLoading(false);
@@ -95,7 +93,7 @@ export const AddUpdateScreen = ({
       <GlassCard style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>1. Update Task Progress (%)</Text>
         <Text style={styles.sectionSub}>
-          Select progress milestone or adjust manually
+          Select progress milestone or adjust manually:
         </Text>
 
         <View style={styles.presetRow}>
@@ -168,7 +166,7 @@ export const AddUpdateScreen = ({
         <Text style={styles.sectionTitle}>3. What did you accomplish today?</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="e.g., Implemented authentication screens, styled glassmorphic buttons, connected JWT endpoint and ran tests..."
+          placeholder="e.g. Implemented JWT authentication, styled glassmorphic buttons, connected Firestore and ran tests..."
           placeholderTextColor={COLORS.textMuted}
           multiline
           numberOfLines={4}
@@ -181,12 +179,12 @@ export const AddUpdateScreen = ({
         <View style={styles.blockerRow}>
           <View style={styles.blockerInfo}>
             <Text style={styles.blockerTitle}>Are you facing any blocker?</Text>
-            <Text style={styles.blockerSub}>Flags this task for manager assistance</Text>
+            <Text style={styles.blockerSub}>Alerts team leads and manager for immediate assistance</Text>
           </View>
           <Switch
             value={isBlocker}
             onValueChange={setIsBlocker}
-            trackColor={{ false: "#334155", true: "#F43F5E" }}
+            trackColor={{ false: "#1E293B", true: "#F43F5E" }}
             thumbColor={isBlocker ? "#FFFFFF" : "#94A3B8"}
           />
         </View>
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
@@ -287,12 +285,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
   presetBtnActive: {
-    backgroundColor: "rgba(6, 182, 212, 0.25)",
+    backgroundColor: "rgba(99, 102, 241, 0.25)",
     borderColor: COLORS.primary,
   },
   presetBtnText: {
@@ -314,7 +312,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     alignItems: "center",
@@ -352,7 +350,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
@@ -375,7 +373,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   textArea: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(10, 15, 26, 0.7)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: 12,
@@ -391,7 +389,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
   },
   blockerInfo: {
     flex: 1,

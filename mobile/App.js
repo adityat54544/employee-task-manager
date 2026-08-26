@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -17,13 +16,13 @@ import { TaskDetailScreen } from "./src/screens/TaskDetailScreen";
 import { AddUpdateScreen } from "./src/screens/AddUpdateScreen";
 import { CreateTaskScreen } from "./src/screens/CreateTaskScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
-import { COLORS } from "./src/theme/colors";
+import { COLORS, GRADIENTS } from "./src/theme/colors";
 
 const MainNavigator = () => {
   const { user, isManager } = useAuth();
 
   // Navigation state
-  const [currentScreen, setCurrentScreen] = useState("DASHBOARD"); // DASHBOARD, TASKS, TASK_DETAIL, ADD_UPDATE, CREATE_TASK, PROFILE
+  const [currentScreen, setCurrentScreen] = useState("DASHBOARD");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [selectedTaskTitle, setSelectedTaskTitle] = useState("");
   const [selectedTaskProgress, setSelectedTaskProgress] = useState(0);
@@ -104,7 +103,7 @@ const MainNavigator = () => {
       {["DASHBOARD", "TASKS", "PROFILE"].includes(currentScreen) && (
         <View style={styles.bottomNavWrapper}>
           <LinearGradient
-            colors={["rgba(30, 41, 59, 0.90)", "rgba(15, 23, 42, 0.98)"]}
+            colors={["rgba(19, 28, 49, 0.92)", "rgba(10, 15, 26, 0.98)"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={styles.bottomNav}
@@ -135,7 +134,7 @@ const MainNavigator = () => {
                 style={styles.centerFab}
               >
                 <LinearGradient
-                  colors={["#06B6D4", "#8B5CF6"]}
+                  colors={GRADIENTS.primary}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.centerFabGradient}
@@ -210,10 +209,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
   },
   bottomNav: {
+    width: "100%",
+    maxWidth: 600,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
@@ -235,7 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   navTabActive: {
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
   },
   tabIcon: {
     fontSize: 20,

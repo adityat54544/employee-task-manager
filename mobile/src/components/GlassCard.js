@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../theme/colors";
 
@@ -9,23 +9,25 @@ export const GlassCard = ({
   onPress,
   variant = "default",
   glow = false,
-  gradientBorder = false,
 }) => {
   let borderColor = COLORS.glassBorder;
-  let bgColors = [COLORS.cardBg, COLORS.cardBgLighter];
+  let bgColors = ["rgba(19, 28, 49, 0.70)", "rgba(12, 18, 32, 0.85)"];
 
   if (variant === "primary") {
-    borderColor = COLORS.glassBorderActive;
-    bgColors = ["rgba(6, 182, 212, 0.12)", "rgba(15, 23, 42, 0.85)"];
-  } else if (variant === "accent") {
-    borderColor = "rgba(139, 92, 246, 0.5)";
-    bgColors = ["rgba(139, 92, 246, 0.12)", "rgba(15, 23, 42, 0.85)"];
-  } else if (variant === "success") {
-    borderColor = "rgba(16, 185, 129, 0.5)";
-    bgColors = ["rgba(16, 185, 129, 0.12)", "rgba(15, 23, 42, 0.85)"];
-  } else if (variant === "highlight") {
-    borderColor = "rgba(255, 255, 255, 0.25)";
-    bgColors = ["rgba(255, 255, 255, 0.08)", "rgba(30, 41, 59, 0.9)"];
+    borderColor = "rgba(99, 102, 241, 0.4)";
+    bgColors = ["rgba(99, 102, 241, 0.12)", "rgba(12, 18, 32, 0.90)"];
+  } else if (variant === "accent" || variant === "violet") {
+    borderColor = "rgba(139, 92, 246, 0.4)";
+    bgColors = ["rgba(139, 92, 246, 0.12)", "rgba(12, 18, 32, 0.90)"];
+  } else if (variant === "success" || variant === "emerald") {
+    borderColor = "rgba(16, 185, 129, 0.4)";
+    bgColors = ["rgba(16, 185, 129, 0.10)", "rgba(12, 18, 32, 0.90)"];
+  } else if (variant === "amber" || variant === "warning") {
+    borderColor = "rgba(245, 158, 11, 0.4)";
+    bgColors = ["rgba(245, 158, 11, 0.10)", "rgba(12, 18, 32, 0.90)"];
+  } else if (variant === "danger" || variant === "rose") {
+    borderColor = "rgba(244, 63, 94, 0.4)";
+    bgColors = ["rgba(244, 63, 94, 0.10)", "rgba(12, 18, 32, 0.90)"];
   }
 
   const cardContent = (
@@ -40,6 +42,8 @@ export const GlassCard = ({
         style,
       ]}
     >
+      {/* Top Glass Refraction Micro-Line */}
+      <View style={styles.topRefraction} />
       {children}
     </LinearGradient>
   );
@@ -57,21 +61,29 @@ export const GlassCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 18,
     borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 5,
+  },
+  topRefraction: {
+    position: "absolute",
+    top: 0,
+    left: 10,
+    right: 10,
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
   },
   glowShadow: {
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
 });

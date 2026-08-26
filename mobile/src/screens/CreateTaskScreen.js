@@ -6,8 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView,
-  Alert,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { tasksAPI, authAPI } from "../api/endpoints";
@@ -105,8 +103,8 @@ export const CreateTaskScreen = ({ onBack, onTaskCreated }) => {
 
       {/* 1. Employee Assignment Selection */}
       <GlassCard style={styles.sectionCard} variant="primary">
-        <Text style={styles.sectionTitle}>1. Assign To Employee</Text>
-        <Text style={styles.sectionSub}>Select the team member responsible for delivery:</Text>
+        <Text style={styles.sectionTitle}>1. Assign To Team Member</Text>
+        <Text style={styles.sectionSub}>Select the engineer responsible for delivery:</Text>
 
         <View style={styles.employeeList}>
           {employees.map((emp) => {
@@ -147,10 +145,10 @@ export const CreateTaskScreen = ({ onBack, onTaskCreated }) => {
           onChangeText={setTitle}
         />
 
-        <Text style={styles.inputLabel}>Detailed Description</Text>
+        <Text style={styles.inputLabel}>Detailed Requirements</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="Provide clear technical requirements, API endpoints, or UI guidelines..."
+          placeholder="Provide clear technical requirements, endpoints, or UI guidelines..."
           placeholderTextColor={COLORS.textMuted}
           multiline
           numberOfLines={3}
@@ -176,7 +174,7 @@ export const CreateTaskScreen = ({ onBack, onTaskCreated }) => {
                   styles.priorityBtn,
                   isSelected && {
                     borderColor: activeColor,
-                    backgroundColor: p === "High" ? "rgba(244, 63, 94, 0.2)" : "rgba(6, 182, 212, 0.2)",
+                    backgroundColor: p === "High" ? "rgba(244, 63, 94, 0.2)" : "rgba(99, 102, 241, 0.2)",
                   },
                 ]}
               >
@@ -202,7 +200,7 @@ export const CreateTaskScreen = ({ onBack, onTaskCreated }) => {
           onChangeText={setDeadline}
         />
 
-        <Text style={styles.inputLabel}>Category</Text>
+        <Text style={styles.inputLabel}>Category / Component</Text>
         <TextInput
           style={styles.input}
           placeholder="e.g. Frontend UI, Backend API, Cloud DevOps"
@@ -239,7 +237,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
@@ -295,7 +293,7 @@ const styles = StyleSheet.create({
   },
   empCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: "rgba(6, 182, 212, 0.15)",
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
   },
   empAvatar: {
     width: 38,
@@ -344,7 +342,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(10, 15, 26, 0.7)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: 12,
@@ -354,7 +352,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   textArea: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(10, 15, 26, 0.7)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: 12,
@@ -373,7 +371,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },

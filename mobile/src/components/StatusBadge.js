@@ -8,17 +8,20 @@ export const StatusBadge = ({ status = "Pending", size = "md" }) => {
   let bg = COLORS.pendingBg;
   let border = COLORS.pendingBorder;
   let text = COLORS.pending;
+  let icon = "⏳";
   let label = "Pending";
 
   if (norm === "in progress" || norm === "in_progress") {
     bg = COLORS.inProgressBg;
     border = COLORS.inProgressBorder;
     text = COLORS.inProgress;
+    icon = "⚡";
     label = "In Progress";
   } else if (norm === "completed") {
     bg = COLORS.completedBg;
     border = COLORS.completedBorder;
     text = COLORS.completed;
+    icon = "✓";
     label = "Completed";
   }
 
@@ -44,15 +47,15 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
     alignSelf: "flex-start",
   },
   badgeSm: {
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
   },
   dot: {
     width: 6,
@@ -61,12 +64,12 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   text: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
   textSm: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
   },
 });

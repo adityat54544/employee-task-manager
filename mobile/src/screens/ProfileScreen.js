@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { systemAPI } from "../api/endpoints";
@@ -23,7 +22,6 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
     serverOnline,
     dbMode,
     isManager,
-    checkServerConnection,
   } = useAuth();
 
   const [reseedLoading, setReseedLoading] = useState(false);
@@ -36,7 +34,7 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
       setFeedbackMsg("✅ Database successfully re-seeded with demo data!");
       setTimeout(() => setFeedbackMsg(""), 4000);
     } catch (err) {
-      setFeedbackMsg("⚠️ Could not re-seed backend (operating in standalone mode)");
+      setFeedbackMsg("⚠️ Operating in standalone mode");
       setTimeout(() => setFeedbackMsg(""), 4000);
     } finally {
       setReseedLoading(false);
@@ -45,7 +43,7 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
 
   const handleSwitchUser = async (userId) => {
     await demoLogin(userId);
-    setFeedbackMsg(`Switched active user to ${demoProfiles.find((p) => p.id === userId)?.name}`);
+    setFeedbackMsg(`Switched active profile to ${demoProfiles.find((p) => p.id === userId)?.name}`);
     setTimeout(() => setFeedbackMsg(""), 3000);
   };
 
@@ -62,7 +60,7 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>User Profile & System</Text>
+        <Text style={styles.headerTitle}>Profile & System Diagnostics</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -79,19 +77,19 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
             source={{ uri: user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" }}
             style={[
               styles.avatarLarge,
-              { borderColor: isManager ? COLORS.secondary : COLORS.primary },
+              { borderColor: isManager ? COLORS.violet : COLORS.primary },
             ]}
           />
           <View
             style={[
               styles.roleTagBig,
-              { backgroundColor: isManager ? "rgba(139, 92, 246, 0.25)" : "rgba(6, 182, 212, 0.25)" },
+              { backgroundColor: isManager ? "rgba(139, 92, 246, 0.25)" : "rgba(99, 102, 241, 0.25)" },
             ]}
           >
             <Text
               style={[
                 styles.roleTextBig,
-                { color: isManager ? "#C4B5FD" : "#67E8F9" },
+                { color: isManager ? "#C4B5FD" : "#A5B4FC" },
               ]}
             >
               {user.role?.toUpperCase()}
@@ -111,7 +109,7 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
 
       {/* System & Cloud Connection Card */}
       <GlassCard style={styles.systemCard}>
-        <Text style={styles.sectionTitle}>⚙️ System & Database Status</Text>
+        <Text style={styles.sectionTitle}>⚙️ System & Infrastructure Status</Text>
 
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Express REST Backend:</Text>
@@ -119,19 +117,19 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: serverOnline ? COLORS.completed : "#F59E0B" },
+                { backgroundColor: serverOnline ? COLORS.completed : COLORS.pending },
               ]}
             />
             <Text style={styles.statusValue}>
-              {serverOnline ? "Connected (Port 5000)" : "Standalone Offline Mode"}
+              {serverOnline ? "Connected (Port 5000)" : "Standalone Mode"}
             </Text>
           </View>
         </View>
 
         <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Database Storage:</Text>
+          <Text style={styles.statusLabel}>Database Storage Engine:</Text>
           <Text style={[styles.statusValue, { color: COLORS.primary }]}>
-            {dbMode === "cloud_firestore" ? "🔥 Google Cloud Firestore" : "⚡ In-Memory High Fidelity"}
+            {dbMode === "cloud_firestore" ? "🔥 Google Cloud Firestore" : "⚡ In-Memory Seed Storage"}
           </Text>
         </View>
 
@@ -147,11 +145,11 @@ export const ProfileScreen = ({ onBack, onNavigateToLogin }) => {
         </View>
       </GlassCard>
 
-      {/* Quick Profile Switcher (Ideal for live demonstrations) */}
+      {/* Quick Profile Switcher */}
       <GlassCard style={styles.switchCard}>
         <Text style={styles.sectionTitle}>👥 1-Tap Switch Active User</Text>
         <Text style={styles.sectionSub}>
-          Instantly toggle between Manager and Employee views to test role permissions:
+          Toggle between Manager and Employee profiles to test role permissions:
         </Text>
 
         <View style={styles.demoList}>
@@ -207,7 +205,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
@@ -222,9 +220,9 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   feedbackBanner: {
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.4)",
+    borderColor: "rgba(16, 185, 129, 0.35)",
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
@@ -283,7 +281,7 @@ const styles = StyleSheet.create({
   codeRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
@@ -367,7 +365,7 @@ const styles = StyleSheet.create({
   },
   demoItemActive: {
     borderColor: COLORS.primary,
-    backgroundColor: "rgba(6, 182, 212, 0.12)",
+    backgroundColor: "rgba(99, 102, 241, 0.12)",
   },
   demoSmallAvatar: {
     width: 32,

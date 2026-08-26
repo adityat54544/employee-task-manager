@@ -14,12 +14,12 @@ export const PriorityBadge = ({ priority = "Medium", size = "md" }) => {
     bg = COLORS.priorityHighBg;
     border = COLORS.priorityHighBorder;
     text = COLORS.priorityHigh;
-    label = "High";
+    label = "High Priority";
   } else if (norm === "low") {
     bg = COLORS.priorityLowBg;
     border = COLORS.priorityLowBorder;
     text = COLORS.priorityLow;
-    label = "Low";
+    label = "Low Priority";
   }
 
   const isSm = size === "sm";
@@ -33,7 +33,8 @@ export const PriorityBadge = ({ priority = "Medium", size = "md" }) => {
       ]}
     >
       <Text style={[styles.text, { color: text }, isSm && styles.textSm]}>
-        🔥 {label}
+        {norm === "high" ? "🔥 " : norm === "low" ? "🌱 " : "⚡ "}
+        {label}
       </Text>
     </View>
   );
@@ -43,7 +44,7 @@ const styles = StyleSheet.create({
   badge: {
     paddingVertical: 4,
     paddingHorizontal: 9,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     alignSelf: "flex-start",
   },

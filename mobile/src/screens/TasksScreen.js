@@ -70,14 +70,14 @@ export const TasksScreen = ({
     <GlassCard
       style={styles.taskCard}
       onPress={() => onNavigateToTaskDetail(t.id)}
-      variant={t.priority === "High" ? "primary" : "default"}
+      variant={t.priority === "High" ? "danger" : "default"}
     >
       <View style={styles.cardTopRow}>
         <View style={styles.badgeRow}>
           <PriorityBadge priority={t.priority} size="sm" />
           <StatusBadge status={t.status} size="sm" />
         </View>
-        <Text style={styles.deadlineBadge}>📅 {t.deadline}</Text>
+        <Text style={styles.deadlineBadge}>📅 Due {t.deadline}</Text>
       </View>
 
       <Text style={styles.taskTitle}>{t.title}</Text>
@@ -115,10 +115,10 @@ export const TasksScreen = ({
       <View style={styles.titleRow}>
         <View>
           <Text style={styles.pageTitle}>
-            {isManager ? "All Team Tasks" : "My Task Queue"}
+            {isManager ? "Team Tasks & Sprints" : "My Task Queue"}
           </Text>
           <Text style={styles.pageSubtitle}>
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} found
+            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} in queue
           </Text>
         </View>
 
@@ -137,7 +137,7 @@ export const TasksScreen = ({
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search tasks, assignees, keywords..."
+          placeholder="Search tasks, descriptions, assignees..."
           placeholderTextColor={COLORS.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(10, 15, 26, 0.7)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: 14,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   filterPillTextActive: {
-    color: COLORS.background,
+    color: COLORS.white,
     fontWeight: "800",
   },
   priorityFilterRow: {
@@ -345,15 +345,15 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.08)",
   },
   priorityChipActive: {
-    backgroundColor: "rgba(139, 92, 246, 0.25)",
-    borderColor: COLORS.secondary,
+    backgroundColor: "rgba(99, 102, 241, 0.25)",
+    borderColor: COLORS.primary,
   },
   priorityChipText: {
     fontSize: 11,
     color: COLORS.textSecondary,
   },
   priorityChipTextActive: {
-    color: "#C4B5FD",
+    color: "#A5B4FC",
     fontWeight: "700",
   },
   taskList: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
   },
   assigneeContainer: {
     flexDirection: "row",

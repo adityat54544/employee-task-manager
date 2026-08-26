@@ -27,8 +27,8 @@ export const GlassButton = ({
     Animated.spring(scaleAnim, {
       toValue: 0.96,
       useNativeDriver: true,
-      speed: 40,
-      bounciness: 6,
+      speed: 45,
+      bounciness: 4,
     }).start();
   };
 
@@ -36,20 +36,21 @@ export const GlassButton = ({
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      speed: 40,
-      bounciness: 6,
+      speed: 45,
+      bounciness: 4,
     }).start();
   };
 
   let gradientColors = GRADIENTS.primary;
-  let borderColor = "transparent";
-  let textColor = COLORS.textPrimary;
+  let borderColor = "rgba(255, 255, 255, 0.15)";
+  let textColor = COLORS.white;
 
   if (variant === "glass") {
-    gradientColors = ["rgba(255, 255, 255, 0.09)", "rgba(255, 255, 255, 0.03)"];
+    gradientColors = ["rgba(255, 255, 255, 0.08)", "rgba(255, 255, 255, 0.02)"];
     borderColor = COLORS.glassBorder;
+    textColor = COLORS.textPrimary;
   } else if (variant === "secondary") {
-    gradientColors = ["#8B5CF6", "#6D28D9"];
+    gradientColors = GRADIENTS.violetIndigo;
   } else if (variant === "success") {
     gradientColors = GRADIENTS.emerald;
   } else if (variant === "danger") {
@@ -66,7 +67,7 @@ export const GlassButton = ({
   return (
     <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
       <TouchableOpacity
-        activeOpacity={0.88}
+        activeOpacity={0.9}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -74,7 +75,7 @@ export const GlassButton = ({
         style={[styles.touchable, disabled && styles.disabled]}
       >
         <LinearGradient
-          colors={disabled ? ["#334155", "#1E293B"] : gradientColors}
+          colors={disabled ? ["#1E293B", "#0F172A"] : gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 4,
   },
@@ -145,19 +146,19 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   btnText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
   textSm: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
   },
   textLg: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "800",
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
 });

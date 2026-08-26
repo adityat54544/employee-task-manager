@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,7 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { GlassCard } from "../components/GlassCard";
 import { GlassButton } from "../components/GlassButton";
 import { ScreenWrapper } from "../components/ScreenWrapper";
-import { COLORS } from "../theme/colors";
+import { COLORS, GRADIENTS } from "../theme/colors";
 
 export const LoginScreen = () => {
   const { login, register, demoLogin, demoProfiles, loading, serverOnline, dbMode } = useAuth();
@@ -23,7 +22,7 @@ export const LoginScreen = () => {
   const [email, setEmail] = useState("manager@company.com");
   const [password, setPassword] = useState("password123");
 
-  // Registration states
+  // Registration state
   const [name, setName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
@@ -73,7 +72,7 @@ export const LoginScreen = () => {
       <View style={styles.brandHero}>
         <View style={styles.logoBadge}>
           <LinearGradient
-            colors={["#06B6D4", "#8B5CF6"]}
+            colors={GRADIENTS.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.logoGradient}
@@ -83,24 +82,24 @@ export const LoginScreen = () => {
         </View>
         <Text style={styles.appTitle}>TaskMaster <Text style={styles.titleGlow}>Pro</Text></Text>
         <Text style={styles.appTagline}>
-          Role-Based Employee Task & Work Log Management
+          Role-Based Task Management & Daily Progress Tracking
         </Text>
 
         {/* Server & DB Status Pill */}
         <View style={styles.statusPillContainer}>
-          <View style={[styles.statusDot, { backgroundColor: serverOnline ? COLORS.completed : "#F59E0B" }]} />
+          <View style={[styles.statusDot, { backgroundColor: serverOnline ? COLORS.completed : COLORS.pending }]} />
           <Text style={styles.statusPillText}>
-            Backend: {serverOnline ? "Online" : "Standalone"} • DB: {dbMode}
+            Backend: {serverOnline ? "Online" : "Standalone"} • Storage: {dbMode}
           </Text>
         </View>
       </View>
 
-      {/* 1-Tap Quick Demo Login Section (Crucial for Reviewers/Recruiters) */}
+      {/* 1-Tap Quick Demo Login Section */}
       <GlassCard style={styles.demoBox} variant="primary" glow={true}>
         <View style={styles.demoHeader}>
           <Text style={styles.demoTitle}>🚀 1-Tap Quick Demo Access</Text>
           <Text style={styles.demoSubtitle}>
-            Click any profile below to instantly log in with pre-seeded tasks & permissions
+            Select any profile below to instantly evaluate role workflows and permissions:
           </Text>
         </View>
 
@@ -124,13 +123,13 @@ export const LoginScreen = () => {
                     <View
                       style={[
                         styles.demoRoleTag,
-                        { backgroundColor: isMgr ? "rgba(139, 92, 246, 0.25)" : "rgba(6, 182, 212, 0.25)" },
+                        { backgroundColor: isMgr ? "rgba(139, 92, 246, 0.2)" : "rgba(99, 102, 241, 0.2)" },
                       ]}
                     >
                       <Text
                         style={[
                           styles.demoRoleText,
-                          { color: isMgr ? "#C4B5FD" : "#67E8F9" },
+                          { color: isMgr ? "#C4B5FD" : "#A5B4FC" },
                         ]}
                       >
                         {p.role.toUpperCase()}
@@ -205,7 +204,7 @@ export const LoginScreen = () => {
             />
 
             <GlassButton
-              title="Sign In"
+              title="Sign In with Credentials"
               onPress={handleLogin}
               loading={loading}
               style={styles.actionBtn}
@@ -214,19 +213,19 @@ export const LoginScreen = () => {
         ) : (
           /* Registration Form */
           <View style={styles.formContent}>
-            <Text style={styles.inputLabel}>Full Name</Text>
+            <Text style={styles.inputLabel}>Full Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Alex Morgan"
+              placeholder="e.g. Rahul Sharma"
               placeholderTextColor={COLORS.textMuted}
               value={name}
               onChangeText={setName}
             />
 
-            <Text style={styles.inputLabel}>Email Address</Text>
+            <Text style={styles.inputLabel}>Email Address *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. alex@company.com"
+              placeholder="e.g. rahul@company.com"
               placeholderTextColor={COLORS.textMuted}
               value={regEmail}
               onChangeText={setRegEmail}
@@ -234,7 +233,7 @@ export const LoginScreen = () => {
               keyboardType="email-address"
             />
 
-            <Text style={styles.inputLabel}>Password</Text>
+            <Text style={styles.inputLabel}>Password *</Text>
             <TextInput
               style={styles.input}
               placeholder="At least 6 characters"
@@ -244,7 +243,7 @@ export const LoginScreen = () => {
               secureTextEntry
             />
 
-            <Text style={styles.inputLabel}>Role Selection</Text>
+            <Text style={styles.inputLabel}>Select Your Role</Text>
             <View style={styles.rolePickerRow}>
               <TouchableOpacity
                 style={[styles.roleSelectBtn, role === "employee" && styles.roleSelectBtnActive]}
@@ -274,7 +273,7 @@ export const LoginScreen = () => {
             />
 
             <GlassButton
-              title="Register & Enter"
+              title="Create Account & Enter"
               onPress={handleRegister}
               loading={loading}
               variant="secondary"
@@ -297,15 +296,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     marginBottom: 12,
     overflow: "hidden",
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
-    shadowRadius: 16,
+    shadowRadius: 18,
     elevation: 8,
   },
   logoGradient: {
@@ -314,7 +313,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logoIcon: {
-    fontSize: 28,
+    fontSize: 26,
   },
   appTitle: {
     fontSize: 28,
@@ -334,7 +333,7 @@ const styles = StyleSheet.create({
   statusPillContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -354,8 +353,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   demoBox: {
-    marginBottom: 24,
-    padding: 16,
+    marginBottom: 20,
+    padding: 18,
   },
   demoHeader: {
     marginBottom: 14,
@@ -370,6 +369,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 3,
+    lineHeight: 17,
   },
   demoProfilesList: {
     gap: 10,
@@ -377,25 +377,25 @@ const styles = StyleSheet.create({
   demoCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
+    padding: 11,
     borderRadius: 14,
     borderWidth: 1,
   },
   demoCardManager: {
-    backgroundColor: "rgba(139, 92, 246, 0.12)",
+    backgroundColor: "rgba(139, 92, 246, 0.10)",
     borderColor: "rgba(139, 92, 246, 0.35)",
   },
   demoCardEmployee: {
-    backgroundColor: "rgba(6, 182, 212, 0.10)",
-    borderColor: "rgba(6, 182, 212, 0.30)",
+    backgroundColor: "rgba(99, 102, 241, 0.08)",
+    borderColor: "rgba(99, 102, 241, 0.28)",
   },
   demoAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   demoInfo: {
     flex: 1,
@@ -406,18 +406,18 @@ const styles = StyleSheet.create({
   },
   demoName: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.textPrimary,
     marginRight: 8,
   },
   demoRoleTag: {
     paddingVertical: 2,
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     borderRadius: 6,
   },
   demoRoleText: {
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 0.5,
   },
   demoDept: {
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   },
   tabHeader: {
     flexDirection: "row",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     borderRadius: 12,
     padding: 4,
     marginBottom: 20,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabBtnActive: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
   },
   tabBtnText: {
     fontSize: 14,
@@ -469,19 +469,19 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#FB7185",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   formContent: {
     gap: 12,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     color: COLORS.textSecondary,
     marginBottom: -4,
   },
   input: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(10, 15, 26, 0.7)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: 12,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   roleSelectBtn: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(10, 15, 26, 0.7)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: 12,
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   },
   roleSelectBtnActive: {
     borderColor: COLORS.primary,
-    backgroundColor: "rgba(6, 182, 212, 0.15)",
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
   },
   roleSelectText: {
     fontSize: 13,

@@ -5,7 +5,7 @@ import { COLORS, GRADIENTS } from "../theme/colors";
 
 export const ProgressBar = ({
   progress = 0,
-  height = 8,
+  height = 7,
   showLabel = true,
   style,
 }) => {
@@ -15,7 +15,7 @@ export const ProgressBar = ({
   if (clampedProgress >= 100) {
     gradient = GRADIENTS.emerald;
   } else if (clampedProgress < 30) {
-    gradient = ["#F59E0B", "#06B6D4"];
+    gradient = GRADIENTS.amber;
   }
 
   return (

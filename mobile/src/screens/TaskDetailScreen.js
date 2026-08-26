@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
-  ScrollView,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { tasksAPI } from "../api/endpoints";
@@ -62,7 +60,6 @@ export const TaskDetailScreen = ({
       }
     } catch (err) {
       console.log("Status update error:", err.message);
-      // Local optimistic fallback
       setTask((prev) => ({
         ...prev,
         status: newStatus,
@@ -127,7 +124,7 @@ export const TaskDetailScreen = ({
             <Text style={styles.metaValue}>📅 {task.deadline}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>HOURS LOGGED</Text>
+            <Text style={styles.metaLabel}>TOTAL HOURS LOGGED</Text>
             <Text style={styles.metaValue}>⏱️ {task.totalHoursSpent || 0} Hours</Text>
           </View>
         </View>
@@ -137,7 +134,7 @@ export const TaskDetailScreen = ({
       <GlassCard style={styles.stepperCard}>
         <Text style={styles.sectionHeading}>🔄 Workflow Status Transition</Text>
         <Text style={styles.sectionSub}>
-          Tap any phase below to update task status in real time:
+          Tap any phase below to transition status in real-time:
         </Text>
 
         <View style={styles.stepperRow}>
@@ -291,7 +288,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
@@ -336,7 +333,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    borderTopColor: "rgba(255, 255, 255, 0.08)",
   },
   metaItem: {
     flex: 1,
@@ -379,13 +376,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     gap: 6,
   },
   stepBtnActive: {
-    backgroundColor: "rgba(6, 182, 212, 0.25)",
+    backgroundColor: "rgba(99, 102, 241, 0.25)",
     borderColor: COLORS.primary,
   },
   stepBtnCompleted: {
@@ -396,7 +393,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "900",
     color: COLORS.textSecondary,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -500,12 +497,12 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   progressDiffPill: {
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.4)",
+    borderColor: "rgba(16, 185, 129, 0.35)",
     paddingVertical: 3,
     paddingHorizontal: 8,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   progressDiffText: {
     fontSize: 11,

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
@@ -19,7 +18,12 @@ import { ScreenWrapper } from "../components/ScreenWrapper";
 import { Header } from "../components/Header";
 import { COLORS, GRADIENTS } from "../theme/colors";
 
-export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onNavigateToCreateTask, onNavigateToProfile }) => {
+export const DashboardScreen = ({
+  onNavigateToTasks,
+  onNavigateToTaskDetail,
+  onNavigateToCreateTask,
+  onNavigateToProfile,
+}) => {
   const { user, isManager } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentTasks, setRecentTasks] = useState([]);
@@ -37,7 +41,6 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
       if (statsRes && statsRes.stats) {
         setStats(statsRes.stats);
       } else {
-        // Fallback default stats for display
         setStats({
           totalTasks: 5,
           pendingTasks: 2,
@@ -85,15 +88,15 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
         <View style={styles.heroRow}>
           <View style={styles.heroLeft}>
             <Text style={styles.heroSubtitle}>
-              {isManager ? "EXECUTIVE OVERVIEW" : "MY PERFORMANCE METRICS"}
+              {isManager ? "EXECUTIVE OVERVIEW" : "PERSONAL PERFORMANCE"}
             </Text>
             <Text style={styles.heroTitle}>
-              {stats?.completionRate || 0}% Completed
+              {stats?.completionRate || 0}% Completion
             </Text>
             <Text style={styles.heroDesc}>
               {isManager
-                ? "Track team delivery & real-time milestone logs"
-                : "Keep up the momentum on your assigned sprints"}
+                ? "Track team delivery timelines & milestone logs"
+                : "Active sprints progressing towards deadlines"}
             </Text>
           </View>
           <View style={styles.ringContainer}>
@@ -115,7 +118,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
         />
       </GlassCard>
 
-      {/* Grid of Key Metric Cards */}
+      {/* Grid of Key Psychological Metric Cards */}
       <View style={styles.statsGrid}>
         {/* Total Tasks */}
         <GlassCard style={styles.statBox} variant="default">
@@ -128,7 +131,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
 
         {/* In Progress */}
         <GlassCard style={styles.statBox} variant="primary">
-          <View style={[styles.statIconBadge, { backgroundColor: "rgba(6, 182, 212, 0.2)" }]}>
+          <View style={[styles.statIconBadge, { backgroundColor: "rgba(6, 182, 212, 0.15)" }]}>
             <Text style={styles.statIcon}>⚡</Text>
           </View>
           <Text style={[styles.statValue, { color: COLORS.inProgress }]}>
@@ -138,8 +141,8 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
         </GlassCard>
 
         {/* Pending */}
-        <GlassCard style={styles.statBox} variant="default">
-          <View style={[styles.statIconBadge, { backgroundColor: "rgba(245, 158, 11, 0.2)" }]}>
+        <GlassCard style={styles.statBox} variant="amber">
+          <View style={[styles.statIconBadge, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
             <Text style={styles.statIcon}>⏳</Text>
           </View>
           <Text style={[styles.statValue, { color: COLORS.pending }]}>
@@ -150,8 +153,8 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
 
         {/* Completed */}
         <GlassCard style={styles.statBox} variant="success">
-          <View style={[styles.statIconBadge, { backgroundColor: "rgba(16, 185, 129, 0.2)" }]}>
-            <Text style={styles.statIcon}>✅</Text>
+          <View style={[styles.statIconBadge, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+            <Text style={styles.statIcon}>✓</Text>
           </View>
           <Text style={[styles.statValue, { color: COLORS.completed }]}>
             {stats?.completedTasks ?? 0}
@@ -177,7 +180,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
       {isManager && stats?.teamBreakdown && stats.teamBreakdown.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>👥 Team Productivity</Text>
+            <Text style={styles.sectionTitle}>👥 Team Workload & Delivery</Text>
           </View>
 
           <View style={styles.teamList}>
@@ -192,7 +195,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
                   <View style={styles.teamScore}>
                     <Text style={styles.teamScoreText}>{emp.completionRate}%</Text>
                     <Text style={styles.teamScoreLabel}>
-                      {emp.completedTasks}/{emp.totalTasks} Tasks
+                      {emp.completedTasks}/{emp.totalTasks} Done
                     </Text>
                   </View>
                 </View>
@@ -212,7 +215,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {isManager ? "📌 Active Team Tasks" : "🎯 My Immediate Tasks"}
+            {isManager ? "📌 Active Team Sprints" : "🎯 My Current Tasks"}
           </Text>
           <TouchableOpacity onPress={onNavigateToTasks}>
             <Text style={styles.viewAllText}>View All ➔</Text>
@@ -230,7 +233,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
                 <PriorityBadge priority={t.priority} size="sm" />
                 <StatusBadge status={t.status} size="sm" />
               </View>
-              <Text style={styles.deadlineText}>📅 {t.deadline}</Text>
+              <Text style={styles.deadlineText}>📅 Due {t.deadline}</Text>
             </View>
 
             <Text style={styles.taskTitle}>{t.title}</Text>
@@ -275,13 +278,13 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
                       })}
                     </Text>
                   </View>
-                  <Text style={styles.activityTaskTitle}>Task: {act.taskTitle}</Text>
+                  <Text style={styles.activityTaskTitle}>{act.taskTitle}</Text>
                   <Text style={styles.activityNote}>"{act.note}"</Text>
                   <View style={styles.activityMetaRow}>
                     <Text style={styles.activityProgressPill}>
-                      Progress: {act.previousProgress}% ➔ {act.newProgress}%
+                      {act.previousProgress}% ➔ {act.newProgress}%
                     </Text>
-                    <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs</Text>
+                    <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs logged</Text>
                   </View>
                 </View>
               </View>
@@ -295,7 +298,7 @@ export const DashboardScreen = ({ onNavigateToTasks, onNavigateToTaskDetail, onN
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 50,
+    paddingBottom: 60,
   },
   heroCard: {
     marginBottom: 20,
@@ -330,14 +333,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   ringContainer: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     padding: 3,
   },
   rateCircle: {
     flex: 1,
-    borderRadius: 35,
+    borderRadius: 33,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -365,16 +368,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   statIconBadge: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
   },
   statIcon: {
-    fontSize: 18,
+    fontSize: 16,
   },
   statValue: {
     fontSize: 24,
@@ -437,7 +440,7 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.textPrimary,
   },
   teamDept: {
@@ -450,7 +453,7 @@ const styles = StyleSheet.create({
   },
   teamScoreText: {
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "900",
     color: COLORS.completed,
   },
   teamScoreLabel: {
@@ -476,7 +479,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   deadlineText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSecondary,
     fontWeight: "600",
   },
@@ -484,7 +487,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
     color: COLORS.textPrimary,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   taskDesc: {
     fontSize: 13,
@@ -499,9 +502,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
   },
   assigneeRow: {
     flexDirection: "row",
@@ -516,7 +519,7 @@ const styles = StyleSheet.create({
   assigneeName: {
     fontSize: 12,
     color: COLORS.textPrimary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   hoursText: {
     fontSize: 12,
@@ -548,7 +551,7 @@ const styles = StyleSheet.create({
   },
   activityUser: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.textPrimary,
   },
   activityTime: {
@@ -557,7 +560,7 @@ const styles = StyleSheet.create({
   },
   activityTaskTitle: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.primary,
     marginBottom: 4,
   },
@@ -575,19 +578,19 @@ const styles = StyleSheet.create({
   activityProgressPill: {
     fontSize: 11,
     color: COLORS.completed,
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
     paddingVertical: 2,
     paddingHorizontal: 8,
-    borderRadius: 8,
-    fontWeight: "700",
+    borderRadius: 6,
+    fontWeight: "800",
   },
   activityHoursPill: {
     fontSize: 11,
     color: COLORS.textSecondary,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     paddingVertical: 2,
     paddingHorizontal: 8,
-    borderRadius: 8,
+    borderRadius: 6,
     fontWeight: "600",
   },
 });
