@@ -10,9 +10,10 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { chatAPI } from "../api/endpoints";
+import { chatAPI, authAPI } from "../api/endpoints";
 import { GlassCard } from "../components/GlassCard";
 import { GlassButton } from "../components/GlassButton";
 import { PulsingDot } from "../components/PulsingDot";
@@ -20,10 +21,10 @@ import { ScreenWrapper } from "../components/ScreenWrapper";
 import { Header } from "../components/Header";
 import { COLORS } from "../theme/colors";
 
-const CHANNELS = [
-  { id: "general", label: "# general" },
-  { id: "announcements", label: "# announcements" },
-  { id: "dev-team", label: "# dev-team" },
+const PUBLIC_CHANNELS = [
+  { id: "general", label: "💬 # general", desc: "Company-wide all team discussion" },
+  { id: "dev-team", label: "💻 # dev-team", desc: "Peer-to-peer developer workspace" },
+  { id: "announcements", label: "📢 # announcements", desc: "Official executive announcements" },
 ];
 
 const EMOJIS = ["👍", "🔥", "🚀", "❤️", "👏"];
@@ -37,6 +38,7 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
   const [inputText, setInputText] = useState("");
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState([]);
 
   // Message Action / Modal states
   const [selectedMessage, setSelectedMessage] = useState(null);
@@ -45,6 +47,20 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
   const [editText, setEditText] = useState("");
 
   const flatListRef = useRef(null);
+
+  // Determine if active channel is a private DM
+  const isPrivateChannel = activeChannel.startsWith("dm_");
+
+  const fetchEmployeesList = async () => {
+    try {
+      const res = await authAPI.getEmployees();
+      if (res && res.employees) {
+        setEmployees(res.employees.filter((e) => e.role === "employee"));
+      }
+    } catch (e) {
+      console.log("Fetch employees error:", e);
+    }
+  };
 
   const fetchMessages = async (showLoading = false) => {
     try {
@@ -61,12 +77,16 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
     }
   };
 
-  // Initial fetch and fast real-time polling sync (every 3 seconds)
+  useEffect(() => {
+    fetchEmployeesList();
+  }, []);
+
+  // Sync on channel change + real-time interval polling
   useEffect(() => {
     fetchMessages(true);
     const interval = setInterval(() => {
       fetchMessages(false);
-    }, 3000);
+    }, 2500);
     return () => clearInterval(interval);
   }, [activeChannel]);
 
@@ -75,7 +95,6 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
     const textToSend = inputText.trim();
     setInputText("");
 
-    // Optimistic UI insert
     const tempId = "temp_" + Date.now();
     const optimisticMsg = {
       id: tempId,
@@ -87,6 +106,7 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
       userDepartment: user.department,
       text: textToSend,
       isAnnouncement: Boolean(isAnnouncement && isManager),
+      isPrivateDM: isPrivateChannel,
       isPinned: false,
       reactions: {},
       createdAt: new Date().toISOString(),
@@ -100,6 +120,7 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
         text: textToSend,
         channel: activeChannel,
         isAnnouncement: Boolean(isAnnouncement && isManager),
+        isPrivate: isPrivateChannel,
       });
       setIsAnnouncement(false);
       fetchMessages(false);
@@ -214,6 +235,7 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
                 styles.msgBubble,
                 isMe && styles.msgBubbleMe,
                 msg.isAnnouncement && styles.msgBubbleAnnouncement,
+                msg.isPrivateDM && styles.msgBubblePrivate,
               ]}
               variant={msg.isAnnouncement ? "amber" : isMe ? "primary" : "default"}
             >
@@ -221,6 +243,12 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
                 <View style={styles.announcementBanner}>
                   <Text style={styles.announcementIcon}>📢</Text>
                   <Text style={styles.announcementTag}>TEAM BROADCAST</Text>
+                </View>
+              )}
+
+              {msg.isPrivateDM && (
+                <View style={styles.privateMsgTag}>
+                  <Text style={styles.privateTagText}>🔒 CONFIDENTIAL (Manager & Employee Only)</Text>
                 </View>
               )}
 
@@ -235,7 +263,7 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
               )}
             </GlassCard>
 
-            {/* Emoji Reactions Row */}
+            {/* Emoji Reactions */}
             {msg.reactions && Object.keys(msg.reactions).length > 0 && (
               <View style={[styles.reactionsRow, isMe && { justifyContent: "flex-end" }]}>
                 {Object.entries(msg.reactions).map(([emoji, userIds]) => {
@@ -267,31 +295,99 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
     <ScreenWrapper scrollable={false} style={styles.container}>
       <Header onProfilePress={onNavigateToProfile} />
 
-      {/* Top Channel Bar */}
-      <View style={styles.channelBar}>
-        {CHANNELS.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            onPress={() => setActiveChannel(c.id)}
-            style={[
-              styles.channelTab,
-              activeChannel === c.id && styles.channelTabActive,
-            ]}
-          >
-            <Text
+      {/* Channel & Direct Message Navigation Tabs */}
+      <View style={styles.channelSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.channelBar}>
+          {PUBLIC_CHANNELS.map((c) => (
+            <TouchableOpacity
+              key={c.id}
+              onPress={() => setActiveChannel(c.id)}
               style={[
-                styles.channelLabel,
-                activeChannel === c.id && styles.channelLabelActive,
+                styles.channelTab,
+                activeChannel === c.id && styles.channelTabActive,
               ]}
             >
-              {c.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.channelLabel,
+                  activeChannel === c.id && styles.channelLabelActive,
+                ]}
+              >
+                {c.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          {/* Employee: Direct 1-on-1 to Manager */}
+          {!isManager && (
+            <TouchableOpacity
+              onPress={() => setActiveChannel(`dm_${user?.id}`)}
+              style={[
+                styles.channelTab,
+                styles.dmTab,
+                activeChannel === `dm_${user?.id}` && styles.dmTabActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.channelLabel,
+                  styles.dmTabLabel,
+                  activeChannel === `dm_${user?.id}` && { color: "#FDE047", fontWeight: "900" },
+                ]}
+              >
+                🔒 Direct to Manager
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
       </View>
 
-      {/* Pinned Messages Banner (If any) */}
-      {pinnedList.length > 0 && (
+      {/* Manager: Direct Message Inbox Selector for Employees */}
+      {isManager && (
+        <View style={styles.managerDmSelector}>
+          <Text style={styles.dmSelectorLabel}>🔒 Manager Direct Message Inboxes:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.managerDmList}>
+            {employees.map((emp) => {
+              const isSelected = activeChannel === `dm_${emp.id}`;
+              return (
+                <TouchableOpacity
+                  key={emp.id}
+                  onPress={() => setActiveChannel(`dm_${emp.id}`)}
+                  style={[
+                    styles.empDmChip,
+                    isSelected && styles.empDmChipActive,
+                  ]}
+                >
+                  <Image source={{ uri: emp.avatar }} style={styles.empDmAvatar} />
+                  <Text style={[styles.empDmName, isSelected && { color: "#FDE047", fontWeight: "900" }]}>
+                    🔒 {emp.name.split(" ")[0]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Private Channel Banner */}
+      {isPrivateChannel && (
+        <GlassCard style={styles.privateAlertBanner} variant="amber">
+          <View style={styles.privateAlertRow}>
+            <Text style={styles.lockIcon}>🔒</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.privateAlertTitle}>Confidential Direct Channel</Text>
+              <Text style={styles.privateAlertDesc}>
+                {isManager
+                  ? `Private 1-on-1 conversation with ${employees.find((e) => `dm_${e.id}` === activeChannel)?.name || "Employee"}.`
+                  : "Private 1-on-1 direct channel with your Manager (Sarah Jenkins)."}
+              </Text>
+            </View>
+          </View>
+        </GlassCard>
+      )}
+
+      {/* Pinned Messages Banner */}
+      {pinnedList.length > 0 && !isPrivateChannel && (
         <GlassCard style={styles.pinnedCard} variant="amber">
           <View style={styles.pinnedRow}>
             <Text style={styles.pinnedIcon}>📌</Text>
@@ -323,17 +419,21 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <GlassCard style={styles.emptyChatCard}>
-            <Text style={styles.emptyChatIcon}>💬</Text>
-            <Text style={styles.emptyChatTitle}>No messages in #{activeChannel}</Text>
+            <Text style={styles.emptyChatIcon}>{isPrivateChannel ? "🔒" : "💬"}</Text>
+            <Text style={styles.emptyChatTitle}>
+              {isPrivateChannel ? "Private Direct Message Thread" : `No messages in #${activeChannel}`}
+            </Text>
             <Text style={styles.emptyChatDesc}>
-              Be the first to start the team conversation!
+              {isPrivateChannel
+                ? "Send a confidential message directly to your manager."
+                : "Be the first to start the team conversation!"}
             </Text>
           </GlassCard>
         }
       />
 
-      {/* Manager Broadcast Toggle (Only if Manager) */}
-      {isManager && (
+      {/* Manager Broadcast Toggle (Only in public channels) */}
+      {isManager && !isPrivateChannel && (
         <View style={styles.managerControlsRow}>
           <TouchableOpacity
             onPress={() => setIsAnnouncement(!isAnnouncement)}
@@ -344,20 +444,24 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
           >
             <Text style={styles.toggleIcon}>{isAnnouncement ? "📢" : "💬"}</Text>
             <Text style={[styles.toggleText, isAnnouncement && styles.toggleTextActive]}>
-              {isAnnouncement ? "Announcement Mode ON" : "Normal Message (Tap for Announcement)"}
+              {isAnnouncement ? "Announcement Mode ON" : "Normal (Tap for Team Announcement)"}
             </Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Input Message Bar */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <GlassCard style={styles.inputContainer} variant="primary">
           <TextInput
             style={styles.chatInput}
-            placeholder={isAnnouncement ? "Type team broadcast..." : `Message #${activeChannel}...`}
+            placeholder={
+              isPrivateChannel
+                ? "Type confidential message to manager..."
+                : isAnnouncement
+                ? "Type team broadcast announcement..."
+                : `Message #${activeChannel}...`
+            }
             placeholderTextColor={COLORS.textMuted}
             value={inputText}
             onChangeText={setInputText}
@@ -374,10 +478,10 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
         </GlassCard>
       </KeyboardAvoidingView>
 
-      {/* Message Action & Moderation Modal */}
+      {/* Action / Moderation Modal */}
       <Modal
         visible={actionModalVisible}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => setActionModalVisible(false)}
       >
@@ -392,7 +496,6 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
               "{selectedMessage?.text}"
             </Text>
 
-            {/* Quick Emoji Reaction Bar */}
             <View style={styles.modalEmojiRow}>
               {EMOJIS.map((emoji) => (
                 <TouchableOpacity
@@ -411,7 +514,6 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
             </View>
 
             <View style={styles.modalActionList}>
-              {/* Manager Exclusive: Pin/Unpin */}
               {isManager && (
                 <TouchableOpacity onPress={handleTogglePin} style={styles.modalActionItem}>
                   <Text style={styles.modalActionIcon}>📌</Text>
@@ -421,7 +523,6 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
                 </TouchableOpacity>
               )}
 
-              {/* Edit (Author or Manager) */}
               {(isManager || selectedMessage?.userId === user?.id) && (
                 <TouchableOpacity onPress={handleStartEdit} style={styles.modalActionItem}>
                   <Text style={styles.modalActionIcon}>✏️</Text>
@@ -431,7 +532,6 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
                 </TouchableOpacity>
               )}
 
-              {/* Delete (Author or Manager) */}
               {(isManager || selectedMessage?.userId === user?.id) && (
                 <TouchableOpacity onPress={handleDeleteMessage} style={styles.modalActionItem}>
                   <Text style={styles.modalActionIcon}>🗑️</Text>
@@ -445,10 +545,10 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Inline Edit Modal */}
+      {/* Edit Modal */}
       <Modal
         visible={isEditing}
-        transparent={true}
+        transparent
         animationType="slide"
         onRequestClose={() => setIsEditing(false)}
       >
@@ -484,347 +584,92 @@ export const ChatScreen = ({ onNavigateToProfile }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    flex: 1,
-  },
-  channelBar: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  channelTab: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  channelTabActive: {
-    backgroundColor: "rgba(99, 102, 241, 0.25)",
-    borderColor: COLORS.primary,
-  },
-  channelLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-  },
-  channelLabelActive: {
-    color: COLORS.primary,
-    fontWeight: "800",
-  },
-  pinnedCard: {
-    padding: 10,
-    marginBottom: 10,
-  },
-  pinnedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  pinnedIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  pinnedContent: {
-    flex: 1,
-  },
-  pinnedTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: COLORS.pending,
-    letterSpacing: 0.5,
-  },
-  pinnedSnippet: {
-    fontSize: 12,
-    color: COLORS.textPrimary,
-    fontWeight: "600",
-  },
-  unpinBtn: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: "700",
-    paddingHorizontal: 8,
-  },
-  messageList: {
-    paddingBottom: 20,
-    gap: 12,
-  },
-  msgContainer: {
-    width: "100%",
-  },
-  msgRight: {
-    alignItems: "flex-end",
-  },
-  msgLeft: {
-    alignItems: "flex-start",
-  },
-  msgWrapper: {
-    flexDirection: "row",
-    maxWidth: "88%",
-    gap: 8,
-  },
-  msgWrapperMe: {
-    flexDirection: "row-reverse",
-  },
-  msgAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    marginTop: 2,
-  },
-  msgHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-    gap: 6,
-  },
-  msgUserName: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-  },
-  msgRoleBadge: {
-    paddingVertical: 1,
-    paddingHorizontal: 5,
-    borderRadius: 4,
-  },
-  msgRoleManager: {
-    backgroundColor: "rgba(139, 92, 246, 0.2)",
-  },
-  msgRoleEmployee: {
-    backgroundColor: "rgba(6, 182, 212, 0.2)",
-  },
-  msgRoleText: {
-    fontSize: 8,
-    fontWeight: "900",
-  },
-  pinnedIndicator: {
-    fontSize: 10,
-    color: COLORS.pending,
-    fontWeight: "700",
-  },
-  msgTimestamp: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-  },
-  msgBubble: {
-    padding: 12,
-    borderRadius: 14,
-  },
-  msgBubbleMe: {
-    backgroundColor: "rgba(99, 102, 241, 0.20)",
-    borderColor: "rgba(99, 102, 241, 0.4)",
-  },
-  msgBubbleAnnouncement: {
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    borderColor: "rgba(245, 158, 11, 0.45)",
-  },
-  announcementBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-    gap: 4,
-  },
-  announcementIcon: {
-    fontSize: 12,
-  },
-  announcementTag: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: COLORS.pending,
-    letterSpacing: 0.8,
-  },
-  msgText: {
-    fontSize: 13,
-    color: COLORS.textPrimary,
-    lineHeight: 19,
-  },
-  msgTextMe: {
-    color: "#FFFFFF",
-  },
-  editedTag: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-    fontStyle: "italic",
-    marginTop: 4,
-  },
-  reactionsRow: {
-    flexDirection: "row",
-    gap: 4,
-    marginTop: 4,
-  },
-  reactionPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    gap: 3,
-  },
-  reactionPillActive: {
-    backgroundColor: "rgba(99, 102, 241, 0.25)",
-    borderColor: COLORS.primary,
-  },
-  reactionEmoji: {
-    fontSize: 11,
-  },
-  reactionCount: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: COLORS.textSecondary,
-  },
-  managerControlsRow: {
-    marginBottom: 6,
-  },
-  announcementToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    alignSelf: "flex-start",
-    gap: 6,
-  },
-  announcementToggleActive: {
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
-    borderColor: COLORS.pending,
-  },
-  toggleIcon: {
-    fontSize: 12,
-  },
-  toggleText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-  },
-  toggleTextActive: {
-    color: COLORS.pending,
-    fontWeight: "800",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    gap: 8,
-    marginBottom: 60,
-  },
-  chatInput: {
-    flex: 1,
-    color: COLORS.textPrimary,
-    fontSize: 13,
-    paddingHorizontal: 10,
-    maxHeight: 70,
-  },
-  sendBtn: {
-    paddingHorizontal: 14,
-  },
-  emptyChatCard: {
-    padding: 30,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  emptyChatIcon: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  emptyChatTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  emptyChatDesc: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalBox: {
-    width: "100%",
-    maxWidth: 400,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  modalSnippet: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontStyle: "italic",
-    marginBottom: 16,
-  },
-  modalEmojiRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  modalEmojiBtn: {
-    padding: 6,
-  },
-  modalEmojiText: {
-    fontSize: 22,
-  },
-  modalActionList: {
-    gap: 8,
-  },
-  modalActionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    gap: 10,
-  },
-  modalActionIcon: {
-    fontSize: 16,
-  },
-  modalActionLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-  },
-  editModalBox: {
-    width: "100%",
-    maxWidth: 420,
-    padding: 20,
-  },
-  editInput: {
-    backgroundColor: "rgba(10, 15, 26, 0.8)",
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: 12,
-    padding: 12,
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    marginVertical: 14,
-    minHeight: 80,
-  },
-  editBtnRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
+  container: { padding: 16, flex: 1 },
+  channelSection: { marginBottom: 8 },
+  channelBar: { gap: 8, paddingVertical: 2 },
+  channelTab: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.04)", borderWidth: 1, borderColor: COLORS.glassBorder },
+  channelTabActive: { backgroundColor: "rgba(99, 102, 241, 0.25)", borderColor: COLORS.primary },
+  dmTab: { backgroundColor: "rgba(245, 158, 11, 0.12)", borderColor: "rgba(245, 158, 11, 0.35)" },
+  dmTabActive: { backgroundColor: "rgba(245, 158, 11, 0.25)", borderColor: "#F59E0B" },
+  channelLabel: { fontSize: 12, fontWeight: "700", color: COLORS.textSecondary },
+  channelLabelActive: { color: COLORS.primary, fontWeight: "800" },
+  dmTabLabel: { color: "#FDE047", fontWeight: "800" },
+  managerDmSelector: { marginBottom: 8, paddingVertical: 4 },
+  dmSelectorLabel: { fontSize: 10, fontWeight: "800", color: COLORS.textMuted, letterSpacing: 0.5, marginBottom: 4 },
+  managerDmList: { gap: 6 },
+  empDmChip: { flexDirection: "row", alignItems: "center", paddingVertical: 4, paddingHorizontal: 8, borderRadius: 10, backgroundColor: "rgba(255, 255, 255, 0.04)", borderWidth: 1, borderColor: COLORS.glassBorder, gap: 5 },
+  empDmChipActive: { backgroundColor: "rgba(245, 158, 11, 0.2)", borderColor: "#F59E0B" },
+  empDmAvatar: { width: 18, height: 18, borderRadius: 9 },
+  empDmName: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "700" },
+  privateAlertBanner: { padding: 10, marginBottom: 8 },
+  privateAlertRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  lockIcon: { fontSize: 16 },
+  privateAlertTitle: { fontSize: 12, fontWeight: "800", color: COLORS.pending },
+  privateAlertDesc: { fontSize: 11, color: COLORS.textSecondary },
+  pinnedCard: { padding: 10, marginBottom: 8 },
+  pinnedRow: { flexDirection: "row", alignItems: "center" },
+  pinnedIcon: { fontSize: 16, marginRight: 8 },
+  pinnedContent: { flex: 1 },
+  pinnedTitle: { fontSize: 10, fontWeight: "800", color: COLORS.pending, letterSpacing: 0.5 },
+  pinnedSnippet: { fontSize: 12, color: COLORS.textPrimary, fontWeight: "600" },
+  unpinBtn: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "700", paddingHorizontal: 8 },
+  messageList: { paddingBottom: 20, gap: 12 },
+  msgContainer: { width: "100%" },
+  msgRight: { alignItems: "flex-end" },
+  msgLeft: { alignItems: "flex-start" },
+  msgWrapper: { flexDirection: "row", maxWidth: "88%", gap: 8 },
+  msgWrapperMe: { flexDirection: "row-reverse" },
+  msgAvatar: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: COLORS.glassBorder, marginTop: 2 },
+  msgHeader: { flexDirection: "row", alignItems: "center", marginBottom: 4, gap: 6 },
+  msgUserName: { fontSize: 12, fontWeight: "800", color: COLORS.textPrimary },
+  msgRoleBadge: { paddingVertical: 1, paddingHorizontal: 5, borderRadius: 4 },
+  msgRoleManager: { backgroundColor: "rgba(139, 92, 246, 0.2)" },
+  msgRoleEmployee: { backgroundColor: "rgba(6, 182, 212, 0.2)" },
+  msgRoleText: { fontSize: 8, fontWeight: "900" },
+  pinnedIndicator: { fontSize: 10, color: COLORS.pending, fontWeight: "700" },
+  msgTimestamp: { fontSize: 10, color: COLORS.textMuted },
+  msgBubble: { padding: 12, borderRadius: 14 },
+  msgBubbleMe: { backgroundColor: "rgba(99, 102, 241, 0.20)", borderColor: "rgba(99, 102, 241, 0.4)" },
+  msgBubbleAnnouncement: { backgroundColor: "rgba(245, 158, 11, 0.15)", borderColor: "rgba(245, 158, 11, 0.45)" },
+  msgBubblePrivate: { backgroundColor: "rgba(245, 158, 11, 0.12)", borderColor: "rgba(245, 158, 11, 0.35)" },
+  announcementBanner: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 4 },
+  announcementIcon: { fontSize: 12 },
+  announcementTag: { fontSize: 10, fontWeight: "900", color: COLORS.pending, letterSpacing: 0.8 },
+  privateMsgTag: { marginBottom: 4 },
+  privateTagText: { fontSize: 9, fontWeight: "800", color: "#FDE047", letterSpacing: 0.5 },
+  msgText: { fontSize: 13, color: COLORS.textPrimary, lineHeight: 19 },
+  msgTextMe: { color: "#FFFFFF" },
+  editedTag: { fontSize: 10, color: COLORS.textMuted, fontStyle: "italic", marginTop: 4 },
+  reactionsRow: { flexDirection: "row", gap: 4, marginTop: 4 },
+  reactionPill: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255, 255, 255, 0.06)", paddingVertical: 2, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.1)", gap: 3 },
+  reactionPillActive: { backgroundColor: "rgba(99, 102, 241, 0.25)", borderColor: COLORS.primary },
+  reactionEmoji: { fontSize: 11 },
+  reactionCount: { fontSize: 10, fontWeight: "800", color: COLORS.textSecondary },
+  managerControlsRow: { marginBottom: 6 },
+  announcementToggle: { flexDirection: "row", alignItems: "center", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "rgba(255, 255, 255, 0.04)", borderWidth: 1, borderColor: COLORS.glassBorder, alignSelf: "flex-start", gap: 6 },
+  announcementToggleActive: { backgroundColor: "rgba(245, 158, 11, 0.2)", borderColor: COLORS.pending },
+  toggleIcon: { fontSize: 12 },
+  toggleText: { fontSize: 11, fontWeight: "700", color: COLORS.textSecondary },
+  toggleTextActive: { color: COLORS.pending, fontWeight: "800" },
+  inputContainer: { flexDirection: "row", alignItems: "center", padding: 8, gap: 8, marginBottom: 60 },
+  chatInput: { flex: 1, color: COLORS.textPrimary, fontSize: 13, paddingHorizontal: 10, maxHeight: 70 },
+  sendBtn: { paddingHorizontal: 14 },
+  emptyChatCard: { padding: 30, alignItems: "center", marginTop: 20 },
+  emptyChatIcon: { fontSize: 36, marginBottom: 8 },
+  emptyChatTitle: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary, marginBottom: 4 },
+  emptyChatDesc: { fontSize: 12, color: COLORS.textSecondary },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.7)", alignItems: "center", justifyContent: "center", padding: 20 },
+  modalBox: { width: "100%", maxWidth: 400, padding: 20 },
+  modalTitle: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary, marginBottom: 4 },
+  modalSnippet: { fontSize: 12, color: COLORS.textSecondary, fontStyle: "italic", marginBottom: 16 },
+  modalEmojiRow: { flexDirection: "row", justifyContent: "space-around", backgroundColor: "rgba(255, 255, 255, 0.06)", paddingVertical: 8, borderRadius: 12, marginBottom: 16 },
+  modalEmojiBtn: { padding: 6 },
+  modalEmojiText: { fontSize: 22 },
+  modalActionList: { gap: 8 },
+  modalActionItem: { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "rgba(255, 255, 255, 0.04)", borderWidth: 1, borderColor: COLORS.glassBorder, gap: 10 },
+  modalActionIcon: { fontSize: 16 },
+  modalActionLabel: { fontSize: 13, fontWeight: "700", color: COLORS.textPrimary },
+  editModalBox: { width: "100%", maxWidth: 420, padding: 20 },
+  editInput: { backgroundColor: "rgba(10, 15, 26, 0.8)", borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: 12, padding: 12, color: COLORS.textPrimary, fontSize: 14, marginVertical: 14, minHeight: 80 },
+  editBtnRow: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
 });

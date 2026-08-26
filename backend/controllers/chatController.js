@@ -1,10 +1,23 @@
 ﻿const { v4: uuidv4 } = require("uuid");
 const { db } = require("../config/firebase");
 
-// GET /api/chat/messages (Fetch messages & pinned message)
+// GET /api/chat/messages (Supports public channels & private DMs to Manager)
 async function getMessages(req, res) {
   try {
     const { channel = "general" } = req.query;
+    const isManager = req.user.role === "manager";
+
+    // Security check for Private DMs
+    if (channel.startsWith("dm_")) {
+      const dmTargetUserId = channel.replace("dm_", "");
+      // Only the specific employee and managers can access this private channel
+      if (!isManager && req.user.id !== dmTargetUserId) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. This is a private confidential channel between this employee and the Manager.",
+        });
+      }
+    }
 
     const messagesSnapshot = await db.collection("messages").get();
     let messages = [];
@@ -16,15 +29,16 @@ async function getMessages(req, res) {
       }
     });
 
-    // Sort oldest to newest for chronological chat stream
+    // Chronological order
     messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    // Identify pinned messages
     const pinnedMessages = messages.filter((m) => m.isPinned);
 
     return res.json({
       success: true,
       count: messages.length,
+      channel,
+      isPrivateDM: channel.startsWith("dm_"),
       pinned: pinnedMessages,
       messages,
     });
@@ -34,31 +48,35 @@ async function getMessages(req, res) {
   }
 }
 
-// POST /api/chat/messages (Send new message)
+// POST /api/chat/messages (Send message to channel or direct to manager)
 async function sendMessage(req, res) {
   try {
-    const { text, channel = "general", isAnnouncement = false } = req.body;
+    const { text, channel = "general", isAnnouncement = false, isPrivate = false } = req.body;
 
     if (!text || text.trim() === "") {
       return res.status(400).json({ success: false, message: "Message content cannot be empty." });
     }
 
     const isManager = req.user.role === "manager";
+    const isDM = channel.startsWith("dm_") || isPrivate;
+    const finalChannel = isPrivate && !isManager ? `dm_${req.user.id}` : channel;
+
     const messageId = "msg_" + uuidv4().substring(0, 8);
 
     const newMessage = {
       id: messageId,
-      channel,
+      channel: finalChannel,
       userId: req.user.id,
       userName: req.user.name,
-      userAvatar: req.user.avatar,
+      userAvatar: req.user.avatar || `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(req.user.name)}`,
       userRole: req.user.role,
       userDepartment: req.user.department,
       text: text.trim(),
       isAnnouncement: Boolean(isAnnouncement && isManager),
+      isPrivateDM: Boolean(isDM),
       isPinned: false,
       isEdited: false,
-      reactions: {}, // { '👍': ['user_1', 'user_2'], '🔥': ['user_3'] }
+      reactions: {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -76,7 +94,7 @@ async function sendMessage(req, res) {
   }
 }
 
-// PATCH /api/chat/messages/:id/pin (Toggle Pin Message - Manager Only)
+// PATCH /api/chat/messages/:id/pin (Manager Only)
 async function togglePinMessage(req, res) {
   try {
     const { id } = req.params;
@@ -110,7 +128,7 @@ async function togglePinMessage(req, res) {
   }
 }
 
-// PATCH /api/chat/messages/:id (Edit Message - Author or Manager)
+// PATCH /api/chat/messages/:id (Author or Manager)
 async function editMessage(req, res) {
   try {
     const { id } = req.params;
@@ -152,7 +170,7 @@ async function editMessage(req, res) {
   }
 }
 
-// DELETE /api/chat/messages/:id (Delete Message - Author or Manager)
+// DELETE /api/chat/messages/:id (Author or Manager)
 async function deleteMessage(req, res) {
   try {
     const { id } = req.params;
@@ -182,7 +200,7 @@ async function deleteMessage(req, res) {
   }
 }
 
-// POST /api/chat/messages/:id/react (Toggle Emoji Reaction)
+// POST /api/chat/messages/:id/react
 async function toggleReaction(req, res) {
   try {
     const { id } = req.params;
@@ -203,10 +221,8 @@ async function toggleReaction(req, res) {
 
     let updatedUsers = [];
     if (userList.includes(req.user.id)) {
-      // Remove reaction
       updatedUsers = userList.filter((uid) => uid !== req.user.id);
     } else {
-      // Add reaction
       updatedUsers = [...userList, req.user.id];
     }
 
@@ -227,7 +243,7 @@ async function toggleReaction(req, res) {
   }
 }
 
-// DELETE /api/chat/clear (Clear channel - Manager only)
+// DELETE /api/chat/clear (Manager only)
 async function clearChannel(req, res) {
   try {
     if (req.user.role !== "manager") {
