@@ -4,6 +4,7 @@ const {
   getTasks,
   getTaskById,
   createTask,
+  updateTask,
   updateTaskStatus,
   addComment,
   deleteTask,
@@ -17,6 +18,8 @@ router.use(authenticate);
 router.get("/", getTasks);
 router.get("/:id", getTaskById);
 router.post("/", requireManager, createTask);
+router.put("/:id", requireManager, updateTask);
+router.patch("/:id", requireManager, updateTask);
 router.patch("/:id/status", updateTaskStatus);
 router.post("/:id/comments", addComment);
 router.delete("/:id", requireManager, deleteTask);

@@ -161,6 +161,54 @@ async function createTask(req, res) {
   }
 }
 
+// PUT /api/tasks/:id (Manager Power: Edit Pre-existing Task Specifications & Reassign)
+async function updateTask(req, res) {
+  try {
+    const { id } = req.params;
+    const { title, description, assignedToId, priority, deadline, category, progress, status } = req.body;
+
+    const taskDoc = await db.collection("tasks").doc(id).get();
+    if (!taskDoc.exists) {
+      return res.status(404).json({ success: false, message: "Task not found." });
+    }
+
+    const currentTask = taskDoc.data();
+    const updateData = { updatedAt: new Date().toISOString() };
+
+    if (title && title.trim()) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (priority) updateData.priority = priority.charAt(0).toUpperCase() + priority.slice(1);
+    if (deadline) updateData.deadline = deadline;
+    if (category) updateData.category = category.trim();
+    if (progress !== undefined) updateData.progress = Number(progress);
+    if (status) updateData.status = status;
+
+    // Handle employee reassignment if assignedToId changed
+    if (assignedToId && assignedToId !== currentTask.assignedToId) {
+      const assigneeDoc = await db.collection("users").doc(assignedToId).get();
+      if (assigneeDoc.exists) {
+        const assigneeData = assigneeDoc.data();
+        updateData.assignedToId = assigneeData.id;
+        updateData.assignedToName = assigneeData.name;
+        updateData.assignedToAvatar = assigneeData.avatar;
+      }
+    }
+
+    await db.collection("tasks").doc(id).update(updateData);
+
+    const updated = { ...currentTask, ...updateData };
+
+    return res.json({
+      success: true,
+      message: `Task "${updated.title}" updated successfully!`,
+      task: updated,
+    });
+  } catch (error) {
+    console.error("updateTask error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update task.", error: error.message });
+  }
+}
+
 // PATCH /api/tasks/:id/status (Full Employee & Manager Freedom: Pending, In Progress, Completed, Blocked)
 async function updateTaskStatus(req, res) {
   try {
@@ -184,7 +232,6 @@ async function updateTaskStatus(req, res) {
 
     const currentTask = taskDoc.data();
 
-    // Verify permission: Either Manager or the Assignee can update
     if (req.user.role !== "manager" && currentTask.assignedToId !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -210,7 +257,6 @@ async function updateTaskStatus(req, res) {
 
     await db.collection("tasks").doc(id).update(updatePayload);
 
-    // Auto-create an audit work log update for manager visibility
     const autoNote = note || (
       normalizedStatus === "Completed"
         ? `🎉 Marked as Completed (100% finished by ${req.user.name})`
@@ -317,6 +363,7 @@ module.exports = {
   getTasks,
   getTaskById,
   createTask,
+  updateTask,
   updateTaskStatus,
   addComment,
   deleteTask,

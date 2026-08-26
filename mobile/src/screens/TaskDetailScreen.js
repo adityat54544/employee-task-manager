@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   Image,
   Modal,
+  ScrollView,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { tasksAPI } from "../api/endpoints";
+import { tasksAPI, authAPI } from "../api/endpoints";
 import { GlassCard } from "../components/GlassCard";
 import { GlassButton } from "../components/GlassButton";
 import { StatusBadge } from "../components/StatusBadge";
@@ -19,6 +20,8 @@ import { UrgencyBadge } from "../components/UrgencyBadge";
 import { AnimatedCard } from "../components/AnimatedCard";
 import { ScreenWrapper } from "../components/ScreenWrapper";
 import { COLORS } from "../theme/colors";
+
+const PRIORITIES = ["High", "Medium", "Low"];
 
 export const TaskDetailScreen = ({
   taskId,
@@ -33,9 +36,20 @@ export const TaskDetailScreen = ({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState("");
 
-  // Blocker / Quick Action Modal
+  // Blocker Modal
   const [blockerModalVisible, setBlockerModalVisible] = useState(false);
   const [blockerNote, setBlockerNote] = useState("");
+
+  // Manager Edit Task Modal
+  const [editTaskModalVisible, setEditTaskModalVisible] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editPriority, setEditPriority] = useState("High");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editProgress, setEditProgress] = useState(0);
+  const [editAssignedId, setEditAssignedId] = useState("");
+  const [employees, setEmployees] = useState([]);
 
   const fetchTaskDetails = async () => {
     try {
@@ -51,8 +65,20 @@ export const TaskDetailScreen = ({
     }
   };
 
+  const fetchEmployeesList = async () => {
+    try {
+      const res = await authAPI.getEmployees();
+      if (res && res.employees) {
+        setEmployees(res.employees.filter((e) => e.role === "employee"));
+      }
+    } catch (err) {
+      console.log("Error fetching employees:", err);
+    }
+  };
+
   useEffect(() => {
     fetchTaskDetails();
+    if (isManager) fetchEmployeesList();
   }, [taskId]);
 
   const showNotification = (msg) => {
@@ -80,6 +106,43 @@ export const TaskDetailScreen = ({
       }
     } catch (err) {
       console.log("Status update error:", err.message);
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const handleOpenEditModal = () => {
+    if (!task) return;
+    setEditTitle(task.title);
+    setEditDesc(task.description || "");
+    setEditPriority(task.priority || "Medium");
+    setEditDeadline(task.deadline || "2026-09-01");
+    setEditCategory(task.category || "General");
+    setEditProgress(task.progress || 0);
+    setEditAssignedId(task.assignedToId || "");
+    setEditTaskModalVisible(true);
+  };
+
+  const handleSaveTaskEdit = async () => {
+    if (!editTitle.trim()) return;
+    try {
+      setStatusUpdating(true);
+      const res = await tasksAPI.updateTask(taskId, {
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        priority: editPriority,
+        deadline: editDeadline.trim(),
+        category: editCategory.trim(),
+        progress: Number(editProgress),
+        assignedToId: editAssignedId,
+      });
+      if (res.success && res.task) {
+        setTask((prev) => ({ ...prev, ...res.task }));
+        setEditTaskModalVisible(false);
+        showNotification("✅ Task specifications updated successfully!");
+      }
+    } catch (err) {
+      console.log("Task edit save error:", err);
     } finally {
       setStatusUpdating(false);
     }
@@ -200,10 +263,20 @@ export const TaskDetailScreen = ({
               <Text style={styles.metaValue}>⏱️ {task.totalHoursSpent || 0} hrs</Text>
             </View>
           </View>
+
+          {/* Manager Edit Button */}
+          {isManager && (
+            <TouchableOpacity
+              onPress={handleOpenEditModal}
+              style={styles.managerEditTaskBtn}
+            >
+              <Text style={styles.managerEditTaskText}>✏️ Edit Task Specifications / Reassign</Text>
+            </TouchableOpacity>
+          )}
         </GlassCard>
       </AnimatedCard>
 
-      {/* Direct Employee Action Hub (I AM DONE / IN PROGRESS / BLOCKED) */}
+      {/* Direct Employee Action Hub */}
       <AnimatedCard delay={150}>
         <GlassCard style={styles.employeeActionHub} variant={isComplete ? "success" : "primary"}>
           <Text style={styles.hubTitle}>
@@ -217,7 +290,6 @@ export const TaskDetailScreen = ({
 
           {/* Primary Action Buttons */}
           <View style={styles.actionGrid}>
-            {/* 1. I'm Done Button */}
             {!isComplete ? (
               <TouchableOpacity
                 onPress={() => handleStatusChange("Completed")}
@@ -245,7 +317,6 @@ export const TaskDetailScreen = ({
             )}
 
             <View style={styles.secondaryActionRow}>
-              {/* 2. In Progress */}
               {task.status !== "In Progress" && !isComplete && (
                 <TouchableOpacity
                   onPress={() => handleStatusChange("In Progress")}
@@ -255,7 +326,6 @@ export const TaskDetailScreen = ({
                 </TouchableOpacity>
               )}
 
-              {/* 3. Pending / Hold */}
               {task.status !== "Pending" && (
                 <TouchableOpacity
                   onPress={() => handleStatusChange("Pending")}
@@ -265,7 +335,6 @@ export const TaskDetailScreen = ({
                 </TouchableOpacity>
               )}
 
-              {/* 4. Blocker Flag */}
               <TouchableOpacity
                 onPress={() => setBlockerModalVisible(true)}
                 style={[styles.smallActionBtn, styles.blockerBtn]}
@@ -423,6 +492,92 @@ export const TaskDetailScreen = ({
         </View>
       </AnimatedCard>
 
+      {/* Manager Edit Task Modal */}
+      <Modal
+        visible={editTaskModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditTaskModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <GlassCard style={styles.editTaskModalBox} variant="primary">
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.editModalHeaderTitle}>✏️ Edit Task Specifications</Text>
+
+              <Text style={styles.inputLabel}>Task Title *</Text>
+              <TextInput style={styles.modalInput} value={editTitle} onChangeText={setEditTitle} />
+
+              <Text style={styles.inputLabel}>Requirements / Description</Text>
+              <TextInput
+                style={[styles.modalInput, { minHeight: 60 }]}
+                value={editDesc}
+                onChangeText={setEditDesc}
+                multiline
+              />
+
+              <Text style={styles.inputLabel}>Reassign To Employee</Text>
+              <View style={styles.assigneePickerList}>
+                {employees.map((emp) => (
+                  <TouchableOpacity
+                    key={emp.id}
+                    onPress={() => setEditAssignedId(emp.id)}
+                    style={[
+                      styles.assigneePickerItem,
+                      editAssignedId === emp.id && styles.assigneePickerItemActive,
+                    ]}
+                  >
+                    <Image source={{ uri: emp.avatar }} style={styles.pickerAvatar} />
+                    <Text style={[styles.pickerName, editAssignedId === emp.id && { color: COLORS.primary }]}>
+                      {emp.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Priority</Text>
+              <View style={styles.priorityRow}>
+                {PRIORITIES.map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    onPress={() => setEditPriority(p)}
+                    style={[
+                      styles.priorityOption,
+                      editPriority === p && styles.priorityOptionActive,
+                    ]}
+                  >
+                    <Text style={[styles.priorityOptionText, editPriority === p && { color: COLORS.primary, fontWeight: "800" }]}>
+                      {p}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Target Deadline (YYYY-MM-DD)</Text>
+              <TextInput style={styles.modalInput} value={editDeadline} onChangeText={setEditDeadline} />
+
+              <Text style={styles.inputLabel}>Category</Text>
+              <TextInput style={styles.modalInput} value={editCategory} onChangeText={setEditCategory} />
+
+              <View style={styles.modalBtnRow}>
+                <GlassButton
+                  title="Cancel"
+                  onPress={() => setEditTaskModalVisible(false)}
+                  variant="glass"
+                  size="sm"
+                />
+                <GlassButton
+                  title="💾 Save Changes"
+                  onPress={handleSaveTaskEdit}
+                  loading={statusUpdating}
+                  variant="primary"
+                  size="sm"
+                />
+              </View>
+            </ScrollView>
+          </GlassCard>
+        </View>
+      </Modal>
+
       {/* Blocker Reporting Modal */}
       <Modal
         visible={blockerModalVisible}
@@ -490,6 +645,8 @@ const styles = StyleSheet.create({
   metaItem: { flex: 1 },
   metaLabel: { fontSize: 10, fontWeight: "700", color: COLORS.textMuted, letterSpacing: 0.5, marginBottom: 2 },
   metaValue: { fontSize: 14, fontWeight: "800", color: COLORS.textPrimary },
+  managerEditTaskBtn: { marginTop: 14, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: "rgba(99, 102, 241, 0.15)", borderWidth: 1, borderColor: "rgba(99, 102, 241, 0.35)", alignItems: "center" },
+  managerEditTaskText: { fontSize: 12, fontWeight: "800", color: "#A5B4FC" },
   employeeActionHub: { padding: 16, marginBottom: 16 },
   hubTitle: { fontSize: 15, fontWeight: "900", color: COLORS.textPrimary, marginBottom: 2 },
   hubSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 },
@@ -545,10 +702,23 @@ const styles = StyleSheet.create({
   commentBody: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", alignItems: "center", justifyContent: "center", padding: 20 },
   modalBox: { width: "100%", maxWidth: 420, padding: 20 },
+  editTaskModalBox: { width: "100%", maxWidth: 460, maxHeight: "88%", padding: 20 },
+  editModalHeaderTitle: { fontSize: 17, fontWeight: "900", color: COLORS.textPrimary, marginBottom: 14 },
+  inputLabel: { fontSize: 11, fontWeight: "700", color: COLORS.textSecondary, marginTop: 10, marginBottom: 4 },
+  modalInput: { backgroundColor: "rgba(10, 15, 26, 0.8)", borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: COLORS.textPrimary, fontSize: 13 },
+  assigneePickerList: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginVertical: 4 },
+  assigneePickerItem: { flexDirection: "row", alignItems: "center", paddingVertical: 5, paddingHorizontal: 8, borderRadius: 8, backgroundColor: "rgba(255, 255, 255, 0.04)", borderWidth: 1, borderColor: COLORS.glassBorder, gap: 6 },
+  assigneePickerItemActive: { borderColor: COLORS.primary, backgroundColor: "rgba(99, 102, 241, 0.2)" },
+  pickerAvatar: { width: 20, height: 20, borderRadius: 10 },
+  pickerName: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "700" },
+  priorityRow: { flexDirection: "row", gap: 8, marginVertical: 4 },
+  priorityOption: { flex: 1, paddingVertical: 8, alignItems: "center", borderRadius: 8, backgroundColor: "rgba(255, 255, 255, 0.04)", borderWidth: 1, borderColor: COLORS.glassBorder },
+  priorityOptionActive: { borderColor: COLORS.primary, backgroundColor: "rgba(99, 102, 241, 0.2)" },
+  priorityOptionText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "700" },
+  modalBtnRow: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 18 },
   modalTitle: { fontSize: 16, fontWeight: "800", color: "#FB7185", marginBottom: 4 },
   modalSub: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 12 },
   blockerInput: { backgroundColor: "rgba(10, 15, 26, 0.8)", borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: 12, padding: 12, color: COLORS.textPrimary, fontSize: 13, marginBottom: 16, minHeight: 70 },
-  modalBtnRow: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
   loadingCard: { padding: 40, alignItems: "center" },
   loadingText: { fontSize: 14, color: COLORS.textSecondary },
 });

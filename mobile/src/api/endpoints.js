@@ -18,6 +18,7 @@ export const tasksAPI = {
   getTasks: async (params = {}) => { const res = await apiClient.get("/tasks", { params }); return res.data; },
   getTaskById: async (id) => { const res = await apiClient.get(`/tasks/${id}`); return res.data; },
   createTask: async (taskData) => { const res = await apiClient.post("/tasks", taskData); return res.data; },
+  updateTask: async (id, taskData) => { const res = await apiClient.put(`/tasks/${id}`, taskData); return res.data; },
   updateStatus: async (id, status, note = "", hoursSpent = 0) => { const res = await apiClient.patch(`/tasks/${id}/status`, { status, note, hoursSpent }); return res.data; },
   addComment: async (id, text) => { const res = await apiClient.post(`/tasks/${id}/comments`, { text }); return res.data; },
   deleteTask: async (id) => { const res = await apiClient.delete(`/tasks/${id}`); return res.data; },
