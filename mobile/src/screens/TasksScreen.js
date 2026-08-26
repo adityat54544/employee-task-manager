@@ -16,19 +16,27 @@ import { GlassButton } from "../components/GlassButton";
 import { StatusBadge } from "../components/StatusBadge";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { ProgressBar } from "../components/ProgressBar";
+import { UrgencyBadge } from "../components/UrgencyBadge";
+import { AnimatedCard } from "../components/AnimatedCard";
 import { ScreenWrapper } from "../components/ScreenWrapper";
 import { Header } from "../components/Header";
 import { COLORS } from "../theme/colors";
 
 const STATUS_FILTERS = ["All", "Pending", "In Progress", "Completed"];
 const PRIORITY_FILTERS = ["All", "High", "Medium", "Low"];
+const SORT_OPTIONS = [
+  { label: "Newest", value: "newest" },
+  { label: "🔥 Priority", value: "priority_desc" },
+  { label: "📅 Deadline", value: "deadline_asc" },
+  { label: "⚡ Progress", value: "progress_desc" },
+];
 
 export const TasksScreen = ({
   onNavigateToTaskDetail,
   onNavigateToCreateTask,
   onNavigateToProfile,
 }) => {
-  const { user, isManager } = useAuth();
+  const { user, isManager, demoProfiles } = useAuth();
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +44,8 @@ export const TasksScreen = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
+  const [selectedSort, setSelectedSort] = useState("newest");
+  const [selectedAssignee, setSelectedAssignee] = useState("All");
 
   const fetchTasks = async () => {
     try {
@@ -43,6 +53,8 @@ export const TasksScreen = ({
       const params = {};
       if (selectedStatus !== "All") params.status = selectedStatus;
       if (selectedPriority !== "All") params.priority = selectedPriority;
+      if (selectedAssignee !== "All") params.assignedToId = selectedAssignee;
+      if (selectedSort) params.sort = selectedSort;
       if (searchQuery) params.search = searchQuery;
 
       const res = await tasksAPI.getTasks(params);
@@ -59,52 +71,75 @@ export const TasksScreen = ({
 
   useEffect(() => {
     fetchTasks();
-  }, [selectedStatus, selectedPriority, searchQuery, user]);
+  }, [selectedStatus, selectedPriority, selectedAssignee, selectedSort, searchQuery, user]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchTasks();
   };
 
-  const renderTaskCard = ({ item: t }) => (
-    <GlassCard
-      style={styles.taskCard}
-      onPress={() => onNavigateToTaskDetail(t.id)}
-      variant={t.priority === "High" ? "danger" : "default"}
-    >
-      <View style={styles.cardTopRow}>
-        <View style={styles.badgeRow}>
-          <PriorityBadge priority={t.priority} size="sm" />
-          <StatusBadge status={t.status} size="sm" />
+  const handleQuickStatusTransition = async (task) => {
+    const nextStatusMap = {
+      Pending: "In Progress",
+      "In Progress": "Completed",
+      Completed: "Pending",
+    };
+    const nextStatus = nextStatusMap[task.status] || "In Progress";
+    try {
+      await tasksAPI.updateStatus(task.id, nextStatus);
+      fetchTasks();
+    } catch (err) {
+      console.log("Quick status toggle error:", err.message);
+    }
+  };
+
+  const renderTaskCard = ({ item: t, index }) => (
+    <AnimatedCard delay={index * 60}>
+      <GlassCard
+        style={styles.taskCard}
+        onPress={() => onNavigateToTaskDetail(t.id)}
+        variant={t.priority === "High" ? "danger" : "default"}
+      >
+        <View style={styles.cardTopRow}>
+          <View style={styles.badgeRow}>
+            <PriorityBadge priority={t.priority} size="sm" />
+            <StatusBadge status={t.status} size="sm" />
+          </View>
+          <UrgencyBadge deadline={t.deadline} />
         </View>
-        <Text style={styles.deadlineBadge}>📅 Due {t.deadline}</Text>
-      </View>
 
-      <Text style={styles.taskTitle}>{t.title}</Text>
-      <Text style={styles.taskDesc} numberOfLines={2}>
-        {t.description}
-      </Text>
+        <Text style={styles.taskTitle}>{t.title}</Text>
+        <Text style={styles.taskDesc} numberOfLines={2}>
+          {t.description}
+        </Text>
 
-      <ProgressBar progress={t.progress} height={6} style={styles.progressBar} />
+        <ProgressBar progress={t.progress} height={6} style={styles.progressBar} />
 
-      <View style={styles.cardFooter}>
-        <View style={styles.assigneeContainer}>
-          <Image
-            source={{ uri: t.assignedToAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}
-            style={styles.assigneeAvatar}
-          />
-          <View>
-            <Text style={styles.assigneeLabel}>Assigned to</Text>
-            <Text style={styles.assigneeName}>{t.assignedToName}</Text>
+        <View style={styles.cardFooter}>
+          <View style={styles.assigneeContainer}>
+            <Image
+              source={{ uri: t.assignedToAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}
+              style={styles.assigneeAvatar}
+            />
+            <View>
+              <Text style={styles.assigneeLabel}>Assigned to</Text>
+              <Text style={styles.assigneeName}>{t.assignedToName}</Text>
+            </View>
+          </View>
+
+          <View style={styles.footerRight}>
+            <TouchableOpacity
+              onPress={() => handleQuickStatusTransition(t)}
+              style={styles.quickStatusBtn}
+            >
+              <Text style={styles.quickStatusText}>
+                {t.status === "Pending" ? "Start ➔" : t.status === "In Progress" ? "Complete ✓" : "Re-open ↺"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.footerRight}>
-          <Text style={styles.hoursSpent}>⏱️ {t.totalHoursSpent || 0} hrs</Text>
-          <Text style={styles.arrowIcon}>➔</Text>
-        </View>
-      </View>
-    </GlassCard>
+      </GlassCard>
+    </AnimatedCard>
   );
 
   return (
@@ -118,7 +153,7 @@ export const TasksScreen = ({
             {isManager ? "Team Tasks & Sprints" : "My Task Queue"}
           </Text>
           <Text style={styles.pageSubtitle}>
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} in queue
+            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} matched
           </Text>
         </View>
 
@@ -137,7 +172,7 @@ export const TasksScreen = ({
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search tasks, descriptions, assignees..."
+          placeholder="Search tasks, assignees, keywords..."
           placeholderTextColor={COLORS.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -181,25 +216,25 @@ export const TasksScreen = ({
         />
       </View>
 
-      {/* Priority Filters */}
-      <View style={styles.priorityFilterRow}>
-        <Text style={styles.priorityFilterLabel}>Priority:</Text>
-        {PRIORITY_FILTERS.map((p) => (
+      {/* Sort & Assignee Filter Row */}
+      <View style={styles.sortRow}>
+        <Text style={styles.sortLabel}>Sort By:</Text>
+        {SORT_OPTIONS.map((opt) => (
           <TouchableOpacity
-            key={p}
-            onPress={() => setSelectedPriority(p)}
+            key={opt.value}
+            onPress={() => setSelectedSort(opt.value)}
             style={[
-              styles.priorityChip,
-              selectedPriority === p && styles.priorityChipActive,
+              styles.sortChip,
+              selectedSort === opt.value && styles.sortChipActive,
             ]}
           >
             <Text
               style={[
-                styles.priorityChipText,
-                selectedPriority === p && styles.priorityChipTextActive,
+                styles.sortChipText,
+                selectedSort === opt.value && styles.sortChipTextActive,
               ]}
             >
-              {p}
+              {opt.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -236,10 +271,11 @@ export const TasksScreen = ({
                   setSearchQuery("");
                   setSelectedStatus("All");
                   setSelectedPriority("All");
+                  setSelectedSort("newest");
                 }}
                 style={styles.resetBtn}
               >
-                <Text style={styles.resetBtnText}>Reset Filters</Text>
+                <Text style={styles.resetBtnText}>Reset All Filters</Text>
               </TouchableOpacity>
             )}
           </GlassCard>
@@ -324,37 +360,38 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "800",
   },
-  priorityFilterRow: {
+  sortRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 14,
     gap: 6,
   },
-  priorityFilterLabel: {
+  sortLabel: {
     fontSize: 11,
     color: COLORS.textSecondary,
     fontWeight: "600",
     marginRight: 2,
   },
-  priorityChip: {
-    paddingVertical: 3,
+  sortChip: {
+    paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: "rgba(255, 255, 255, 0.04)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.08)",
   },
-  priorityChipActive: {
+  sortChipActive: {
     backgroundColor: "rgba(99, 102, 241, 0.25)",
     borderColor: COLORS.primary,
   },
-  priorityChipText: {
+  sortChipText: {
     fontSize: 11,
     color: COLORS.textSecondary,
+    fontWeight: "600",
   },
-  priorityChipTextActive: {
+  sortChipTextActive: {
     color: "#A5B4FC",
-    fontWeight: "700",
+    fontWeight: "800",
   },
   taskList: {
     paddingBottom: 80,
@@ -372,11 +409,6 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: "row",
     gap: 8,
-  },
-  deadlineBadge: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
   },
   taskTitle: {
     fontSize: 16,
@@ -425,16 +457,19 @@ const styles = StyleSheet.create({
   footerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
-  hoursSpent: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
+  quickStatusBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(99, 102, 241, 0.35)",
   },
-  arrowIcon: {
-    fontSize: 14,
-    color: COLORS.primary,
+  quickStatusText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#A5B4FC",
   },
   emptyCard: {
     padding: 30,

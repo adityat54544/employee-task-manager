@@ -1,5 +1,5 @@
-﻿import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+﻿import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS, GRADIENTS } from "../theme/colors";
 
@@ -10,6 +10,15 @@ export const ProgressBar = ({
   style,
 }) => {
   const clampedProgress = Math.min(100, Math.max(0, Math.round(progress || 0)));
+  const widthAnim = useRef(new Animated.Value(clampedProgress)).current;
+
+  useEffect(() => {
+    Animated.timing(widthAnim, {
+      toValue: clampedProgress,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [clampedProgress]);
 
   let gradient = GRADIENTS.primary;
   if (clampedProgress >= 100) {
@@ -17,6 +26,11 @@ export const ProgressBar = ({
   } else if (clampedProgress < 30) {
     gradient = GRADIENTS.amber;
   }
+
+  const widthInterpolated = widthAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ["0%", "100%"],
+  });
 
   return (
     <View style={[styles.container, style]}>
@@ -27,11 +41,11 @@ export const ProgressBar = ({
         </View>
       )}
       <View style={[styles.track, { height, borderRadius: height / 2 }]}>
-        <View
+        <Animated.View
           style={[
             styles.fillWrapper,
             {
-              width: `${clampedProgress}%`,
+              width: widthInterpolated,
               height,
               borderRadius: height / 2,
             },
@@ -43,7 +57,7 @@ export const ProgressBar = ({
             end={{ x: 1, y: 0 }}
             style={[styles.gradientFill, { height, borderRadius: height / 2 }]}
           />
-        </View>
+        </Animated.View>
       </View>
     </View>
   );

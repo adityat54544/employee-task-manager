@@ -44,8 +44,8 @@ export const tasksAPI = {
     const res = await apiClient.patch(`/tasks/${id}/status`, { status });
     return res.data;
   },
-  updateTask: async (id, taskData) => {
-    const res = await apiClient.put(`/tasks/${id}`, taskData);
+  addComment: async (id, text) => {
+    const res = await apiClient.post(`/tasks/${id}/comments`, { text });
     return res.data;
   },
   deleteTask: async (id) => {

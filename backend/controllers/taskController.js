@@ -1,10 +1,10 @@
 ﻿const { v4: uuidv4 } = require("uuid");
 const { db } = require("../config/firebase");
 
-// GET /api/tasks (List tasks with search & filters)
+// GET /api/tasks (List tasks with advanced filtering, employee filter & sorting)
 async function getTasks(req, res) {
   try {
-    const { status, priority, assignedToId, search } = req.query;
+    const { status, priority, assignedToId, search, sort = "newest" } = req.query;
     const isManager = req.user.role === "manager";
 
     const tasksSnapshot = await db.collection("tasks").get();
@@ -17,7 +17,7 @@ async function getTasks(req, res) {
     // If Employee, only show tasks assigned to them (unless explicitly requested team tasks)
     if (!isManager && !req.query.all) {
       tasks = tasks.filter((t) => t.assignedToId === req.user.id);
-    } else if (assignedToId) {
+    } else if (assignedToId && assignedToId !== "All") {
       tasks = tasks.filter((t) => t.assignedToId === assignedToId);
     }
 
@@ -43,8 +43,18 @@ async function getTasks(req, res) {
       );
     }
 
-    // Sort by createdAt descending
-    tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Advanced Sorting
+    if (sort === "deadline_asc") {
+      tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    } else if (sort === "priority_desc") {
+      const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+      tasks.sort((a, b) => (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0));
+    } else if (sort === "progress_desc") {
+      tasks.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+    } else {
+      // Default: newest first
+      tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
 
     return res.json({
       success: true,
@@ -57,7 +67,7 @@ async function getTasks(req, res) {
   }
 }
 
-// GET /api/tasks/:id (Single task with full updates timeline)
+// GET /api/tasks/:id (Single task with full updates timeline & comments)
 async function getTaskById(req, res) {
   try {
     const { id } = req.params;
@@ -75,15 +85,22 @@ async function getTaskById(req, res) {
     updatesSnapshot.forEach((doc) => {
       updates.push(doc.data());
     });
-
-    // Sort updates newest first
     updates.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Fetch comments
+    const commentsSnapshot = await db.collection("comments").where("taskId", "==", id).get();
+    const comments = [];
+    commentsSnapshot.forEach((doc) => {
+      comments.push(doc.data());
+    });
+    comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return res.json({
       success: true,
       task: {
         ...task,
         updates,
+        comments,
       },
     });
   } catch (error) {
@@ -195,7 +212,7 @@ async function updateTaskStatus(req, res) {
 
     return res.json({
       success: true,
-      message: `Status updated to ${normalizedStatus}`,
+      message: `Status transitioned to ${normalizedStatus}`,
       task: {
         ...currentTask,
         ...updatePayload,
@@ -207,30 +224,42 @@ async function updateTaskStatus(req, res) {
   }
 }
 
-// PUT /api/tasks/:id (Full Task Update - Manager only)
-async function updateTask(req, res) {
+// POST /api/tasks/:id/comments (Add Team Discussion / Feedback Comment)
+async function addComment(req, res) {
   try {
     const { id } = req.params;
+    const { text } = req.body;
+
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ success: false, message: "Comment text cannot be empty." });
+    }
+
     const taskDoc = await db.collection("tasks").doc(id).get();
     if (!taskDoc.exists) {
       return res.status(404).json({ success: false, message: "Task not found." });
     }
 
-    const updateData = {
-      ...req.body,
-      updatedAt: new Date().toISOString(),
+    const commentId = "comment_" + uuidv4().substring(0, 8);
+    const newComment = {
+      id: commentId,
+      taskId: id,
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar,
+      userRole: req.user.role,
+      text: text.trim(),
+      createdAt: new Date().toISOString(),
     };
-    delete updateData.id;
 
-    await db.collection("tasks").doc(id).update(updateData);
+    await db.collection("comments").doc(commentId).set(newComment);
 
-    return res.json({
+    return res.status(201).json({
       success: true,
-      message: "Task updated successfully.",
-      task: { ...taskDoc.data(), ...updateData },
+      message: "Comment added successfully.",
+      comment: newComment,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to update task.", error: error.message });
+    return res.status(500).json({ success: false, message: "Failed to add comment.", error: error.message });
   }
 }
 
@@ -259,6 +288,6 @@ module.exports = {
   getTaskById,
   createTask,
   updateTaskStatus,
-  updateTask,
+  addComment,
   deleteTask,
 };

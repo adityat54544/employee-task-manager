@@ -5,7 +5,7 @@ const {
   getTaskById,
   createTask,
   updateTaskStatus,
-  updateTask,
+  addComment,
   deleteTask,
 } = require("../controllers/taskController");
 const { addWorkUpdate, getTaskUpdates } = require("../controllers/updateController");
@@ -18,7 +18,7 @@ router.get("/", getTasks);
 router.get("/:id", getTaskById);
 router.post("/", requireManager, createTask);
 router.patch("/:id/status", updateTaskStatus);
-router.put("/:id", requireManager, updateTask);
+router.post("/:id/comments", addComment);
 router.delete("/:id", requireManager, deleteTask);
 
 // Work updates nested under task

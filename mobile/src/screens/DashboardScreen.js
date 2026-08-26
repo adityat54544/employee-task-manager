@@ -14,6 +14,9 @@ import { GlassButton } from "../components/GlassButton";
 import { StatusBadge } from "../components/StatusBadge";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { ProgressBar } from "../components/ProgressBar";
+import { PulsingDot } from "../components/PulsingDot";
+import { UrgencyBadge } from "../components/UrgencyBadge";
+import { AnimatedCard } from "../components/AnimatedCard";
 import { ScreenWrapper } from "../components/ScreenWrapper";
 import { Header } from "../components/Header";
 import { COLORS, GRADIENTS } from "../theme/colors";
@@ -83,214 +86,229 @@ export const DashboardScreen = ({
     >
       <Header onProfilePress={onNavigateToProfile} />
 
-      {/* Hero Performance Overview Card */}
-      <GlassCard style={styles.heroCard} variant="primary" glow={true}>
-        <View style={styles.heroRow}>
-          <View style={styles.heroLeft}>
-            <Text style={styles.heroSubtitle}>
-              {isManager ? "EXECUTIVE OVERVIEW" : "PERSONAL PERFORMANCE"}
-            </Text>
-            <Text style={styles.heroTitle}>
-              {stats?.completionRate || 0}% Completion
-            </Text>
-            <Text style={styles.heroDesc}>
-              {isManager
-                ? "Track team delivery timelines & milestone logs"
-                : "Active sprints progressing towards deadlines"}
-            </Text>
+      {/* Hero Performance Overview Card with Animated Stagger */}
+      <AnimatedCard delay={100}>
+        <GlassCard style={styles.heroCard} variant="primary" glow={true}>
+          <View style={styles.heroRow}>
+            <View style={styles.heroLeft}>
+              <View style={styles.heroBadgeRow}>
+                <PulsingDot color={COLORS.primary} size={6} />
+                <Text style={styles.heroSubtitle}>
+                  {isManager ? "EXECUTIVE SPRINT OVERVIEW" : "PERSONAL PERFORMANCE DASHBOARD"}
+                </Text>
+              </View>
+              <Text style={styles.heroTitle}>
+                {stats?.completionRate || 0}% Completion Rate
+              </Text>
+              <Text style={styles.heroDesc}>
+                {isManager
+                  ? "Track team delivery timelines, milestone logs & productivity"
+                  : "Keep momentum going on active assigned sprints"}
+              </Text>
+            </View>
+            <View style={styles.ringContainer}>
+              <LinearGradient
+                colors={GRADIENTS.primary}
+                style={styles.rateCircle}
+              >
+                <Text style={styles.ratePercent}>{stats?.completionRate || 0}%</Text>
+                <Text style={styles.rateLabel}>Done</Text>
+              </LinearGradient>
+            </View>
           </View>
-          <View style={styles.ringContainer}>
-            <LinearGradient
-              colors={GRADIENTS.primary}
-              style={styles.rateCircle}
-            >
-              <Text style={styles.ratePercent}>{stats?.completionRate || 0}%</Text>
-              <Text style={styles.rateLabel}>Done</Text>
-            </LinearGradient>
-          </View>
-        </View>
 
-        <ProgressBar
-          progress={stats?.completionRate || 0}
-          height={6}
-          showLabel={false}
-          style={styles.heroBar}
-        />
-      </GlassCard>
+          <ProgressBar
+            progress={stats?.completionRate || 0}
+            height={6}
+            showLabel={false}
+            style={styles.heroBar}
+          />
+        </GlassCard>
+      </AnimatedCard>
 
       {/* Grid of Key Psychological Metric Cards */}
-      <View style={styles.statsGrid}>
-        {/* Total Tasks */}
-        <GlassCard style={styles.statBox} variant="default">
-          <View style={styles.statIconBadge}>
-            <Text style={styles.statIcon}>📋</Text>
-          </View>
-          <Text style={styles.statValue}>{stats?.totalTasks ?? 0}</Text>
-          <Text style={styles.statLabel}>Total Tasks</Text>
-        </GlassCard>
+      <AnimatedCard delay={200}>
+        <View style={styles.statsGrid}>
+          {/* Total Tasks */}
+          <GlassCard style={styles.statBox} variant="default">
+            <View style={styles.statIconBadge}>
+              <Text style={styles.statIcon}>📋</Text>
+            </View>
+            <Text style={styles.statValue}>{stats?.totalTasks ?? 0}</Text>
+            <Text style={styles.statLabel}>Total Tasks</Text>
+          </GlassCard>
 
-        {/* In Progress */}
-        <GlassCard style={styles.statBox} variant="primary">
-          <View style={[styles.statIconBadge, { backgroundColor: "rgba(6, 182, 212, 0.15)" }]}>
-            <Text style={styles.statIcon}>⚡</Text>
-          </View>
-          <Text style={[styles.statValue, { color: COLORS.inProgress }]}>
-            {stats?.inProgressTasks ?? 0}
-          </Text>
-          <Text style={styles.statLabel}>In Progress</Text>
-        </GlassCard>
+          {/* In Progress */}
+          <GlassCard style={styles.statBox} variant="primary">
+            <View style={[styles.statIconBadge, { backgroundColor: "rgba(6, 182, 212, 0.15)" }]}>
+              <Text style={styles.statIcon}>⚡</Text>
+            </View>
+            <Text style={[styles.statValue, { color: COLORS.inProgress }]}>
+              {stats?.inProgressTasks ?? 0}
+            </Text>
+            <Text style={styles.statLabel}>In Progress</Text>
+          </GlassCard>
 
-        {/* Pending */}
-        <GlassCard style={styles.statBox} variant="amber">
-          <View style={[styles.statIconBadge, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
-            <Text style={styles.statIcon}>⏳</Text>
-          </View>
-          <Text style={[styles.statValue, { color: COLORS.pending }]}>
-            {stats?.pendingTasks ?? 0}
-          </Text>
-          <Text style={styles.statLabel}>Pending</Text>
-        </GlassCard>
+          {/* Pending */}
+          <GlassCard style={styles.statBox} variant="amber">
+            <View style={[styles.statIconBadge, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
+              <Text style={styles.statIcon}>⏳</Text>
+            </View>
+            <Text style={[styles.statValue, { color: COLORS.pending }]}>
+              {stats?.pendingTasks ?? 0}
+            </Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </GlassCard>
 
-        {/* Completed */}
-        <GlassCard style={styles.statBox} variant="success">
-          <View style={[styles.statIconBadge, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
-            <Text style={styles.statIcon}>✓</Text>
-          </View>
-          <Text style={[styles.statValue, { color: COLORS.completed }]}>
-            {stats?.completedTasks ?? 0}
-          </Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </GlassCard>
-      </View>
+          {/* Completed */}
+          <GlassCard style={styles.statBox} variant="success">
+            <View style={[styles.statIconBadge, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
+              <Text style={styles.statIcon}>✓</Text>
+            </View>
+            <Text style={[styles.statValue, { color: COLORS.completed }]}>
+              {stats?.completedTasks ?? 0}
+            </Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </GlassCard>
+        </View>
+      </AnimatedCard>
 
       {/* Manager Action Quick Trigger */}
       {isManager && (
-        <View style={styles.managerActionRow}>
-          <GlassButton
-            title="+ Assign New Task"
-            onPress={onNavigateToCreateTask}
-            variant="primary"
-            size="lg"
-            style={styles.assignBtn}
-          />
-        </View>
+        <AnimatedCard delay={250}>
+          <View style={styles.managerActionRow}>
+            <GlassButton
+              title="+ Assign New Task to Team"
+              onPress={onNavigateToCreateTask}
+              variant="primary"
+              size="lg"
+              style={styles.assignBtn}
+            />
+          </View>
+        </AnimatedCard>
       )}
 
       {/* Manager's Team Productivity Breakdown */}
       {isManager && stats?.teamBreakdown && stats.teamBreakdown.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>👥 Team Workload & Delivery</Text>
-          </View>
+        <AnimatedCard delay={300}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>👥 Team Workload & Velocity</Text>
+            </View>
 
-          <View style={styles.teamList}>
-            {stats.teamBreakdown.map((emp) => (
-              <GlassCard key={emp.id} style={styles.teamCard}>
-                <View style={styles.teamRow}>
-                  <Image source={{ uri: emp.avatar }} style={styles.teamAvatar} />
-                  <View style={styles.teamInfo}>
-                    <Text style={styles.teamName}>{emp.name}</Text>
-                    <Text style={styles.teamDept}>{emp.department}</Text>
+            <View style={styles.teamList}>
+              {stats.teamBreakdown.map((emp) => (
+                <GlassCard key={emp.id} style={styles.teamCard}>
+                  <View style={styles.teamRow}>
+                    <Image source={{ uri: emp.avatar }} style={styles.teamAvatar} />
+                    <View style={styles.teamInfo}>
+                      <Text style={styles.teamName}>{emp.name}</Text>
+                      <Text style={styles.teamDept}>{emp.department}</Text>
+                    </View>
+                    <View style={styles.teamScore}>
+                      <Text style={styles.teamScoreText}>{emp.completionRate}%</Text>
+                      <Text style={styles.teamScoreLabel}>
+                        {emp.completedTasks}/{emp.totalTasks} Sprints Done
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.teamScore}>
-                    <Text style={styles.teamScoreText}>{emp.completionRate}%</Text>
-                    <Text style={styles.teamScoreLabel}>
-                      {emp.completedTasks}/{emp.totalTasks} Done
-                    </Text>
-                  </View>
-                </View>
-                <ProgressBar
-                  progress={emp.completionRate}
-                  height={5}
-                  showLabel={false}
-                  style={styles.teamBar}
-                />
-              </GlassCard>
-            ))}
+                  <ProgressBar
+                    progress={emp.completionRate}
+                    height={5}
+                    showLabel={false}
+                    style={styles.teamBar}
+                  />
+                </GlassCard>
+              ))}
+            </View>
           </View>
-        </View>
+        </AnimatedCard>
       )}
 
       {/* Recent Tasks List Preview */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {isManager ? "📌 Active Team Sprints" : "🎯 My Current Tasks"}
-          </Text>
-          <TouchableOpacity onPress={onNavigateToTasks}>
-            <Text style={styles.viewAllText}>View All ➔</Text>
-          </TouchableOpacity>
-        </View>
-
-        {recentTasks.map((t) => (
-          <GlassCard
-            key={t.id}
-            style={styles.taskCard}
-            onPress={() => onNavigateToTaskDetail(t.id)}
-          >
-            <View style={styles.taskHeader}>
-              <View style={styles.badgeRow}>
-                <PriorityBadge priority={t.priority} size="sm" />
-                <StatusBadge status={t.status} size="sm" />
-              </View>
-              <Text style={styles.deadlineText}>📅 Due {t.deadline}</Text>
-            </View>
-
-            <Text style={styles.taskTitle}>{t.title}</Text>
-            <Text style={styles.taskDesc} numberOfLines={2}>
-              {t.description}
-            </Text>
-
-            <ProgressBar progress={t.progress} height={6} style={styles.taskProgressBar} />
-
-            <View style={styles.taskFooter}>
-              <View style={styles.assigneeRow}>
-                <Image
-                  source={{ uri: t.assignedToAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}
-                  style={styles.assigneeAvatar}
-                />
-                <Text style={styles.assigneeName}>{t.assignedToName}</Text>
-              </View>
-              <Text style={styles.hoursText}>⏱️ {t.totalHoursSpent || 0} hrs</Text>
-            </View>
-          </GlassCard>
-        ))}
-      </View>
-
-      {/* Recent Activity Timeline Feed */}
-      {stats?.recentActivity && stats.recentActivity.length > 0 && (
+      <AnimatedCard delay={350}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>⚡ Live Work Updates Feed</Text>
+            <Text style={styles.sectionTitle}>
+              {isManager ? "📌 Active Team Sprints" : "🎯 My Current Tasks"}
+            </Text>
+            <TouchableOpacity onPress={onNavigateToTasks}>
+              <Text style={styles.viewAllText}>View All ➔</Text>
+            </TouchableOpacity>
           </View>
 
-          {stats.recentActivity.map((act) => (
-            <GlassCard key={act.id} style={styles.activityCard}>
-              <View style={styles.activityRow}>
-                <Image source={{ uri: act.userAvatar }} style={styles.activityAvatar} />
-                <View style={styles.activityInfo}>
-                  <View style={styles.activityTop}>
-                    <Text style={styles.activityUser}>{act.userName}</Text>
-                    <Text style={styles.activityTime}>
-                      {new Date(act.createdAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </Text>
-                  </View>
-                  <Text style={styles.activityTaskTitle}>{act.taskTitle}</Text>
-                  <Text style={styles.activityNote}>"{act.note}"</Text>
-                  <View style={styles.activityMetaRow}>
-                    <Text style={styles.activityProgressPill}>
-                      {act.previousProgress}% ➔ {act.newProgress}%
-                    </Text>
-                    <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs logged</Text>
-                  </View>
+          {recentTasks.map((t) => (
+            <GlassCard
+              key={t.id}
+              style={styles.taskCard}
+              onPress={() => onNavigateToTaskDetail(t.id)}
+            >
+              <View style={styles.taskHeader}>
+                <View style={styles.badgeRow}>
+                  <PriorityBadge priority={t.priority} size="sm" />
+                  <StatusBadge status={t.status} size="sm" />
                 </View>
+                <UrgencyBadge deadline={t.deadline} />
+              </View>
+
+              <Text style={styles.taskTitle}>{t.title}</Text>
+              <Text style={styles.taskDesc} numberOfLines={2}>
+                {t.description}
+              </Text>
+
+              <ProgressBar progress={t.progress} height={6} style={styles.taskProgressBar} />
+
+              <View style={styles.taskFooter}>
+                <View style={styles.assigneeRow}>
+                  <Image
+                    source={{ uri: t.assignedToAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}
+                    style={styles.assigneeAvatar}
+                  />
+                  <Text style={styles.assigneeName}>{t.assignedToName}</Text>
+                </View>
+                <Text style={styles.hoursText}>⏱️ {t.totalHoursSpent || 0} hrs logged</Text>
               </View>
             </GlassCard>
           ))}
         </View>
+      </AnimatedCard>
+
+      {/* Recent Activity Timeline Feed */}
+      {stats?.recentActivity && stats.recentActivity.length > 0 && (
+        <AnimatedCard delay={400}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>⚡ Live Team Work Updates</Text>
+            </View>
+
+            {stats.recentActivity.map((act) => (
+              <GlassCard key={act.id} style={styles.activityCard}>
+                <View style={styles.activityRow}>
+                  <Image source={{ uri: act.userAvatar }} style={styles.activityAvatar} />
+                  <View style={styles.activityInfo}>
+                    <View style={styles.activityTop}>
+                      <Text style={styles.activityUser}>{act.userName}</Text>
+                      <Text style={styles.activityTime}>
+                        {new Date(act.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </Text>
+                    </View>
+                    <Text style={styles.activityTaskTitle}>{act.taskTitle}</Text>
+                    <Text style={styles.activityNote}>"{act.note}"</Text>
+                    <View style={styles.activityMetaRow}>
+                      <Text style={styles.activityProgressPill}>
+                        {act.previousProgress}% ➔ {act.newProgress}%
+                      </Text>
+                      <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs logged</Text>
+                    </View>
+                  </View>
+                </View>
+              </GlassCard>
+            ))}
+          </View>
+        </AnimatedCard>
       )}
     </ScreenWrapper>
   );
@@ -314,12 +332,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 12,
   },
+  heroBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 6,
+  },
   heroSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
     color: COLORS.primary,
-    letterSpacing: 1,
-    marginBottom: 4,
+    letterSpacing: 0.8,
   },
   heroTitle: {
     fontSize: 24,
@@ -477,11 +500,6 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: "row",
     gap: 8,
-  },
-  deadlineText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
   },
   taskTitle: {
     fontSize: 16,
