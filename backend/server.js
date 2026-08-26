@@ -7,6 +7,7 @@ const { seedDatabase } = require("./seed/seedData");
 const authRoutes = require("./routes/authRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,16 +16,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// Request logger
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
-
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Health Check & System Status
 app.get("/api/health", (req, res) => {
@@ -40,7 +36,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// One-Click Re-seed API endpoint (useful for demo resets)
+// One-Click Re-seed API endpoint
 app.post("/api/seed", async (req, res) => {
   try {
     await seedDatabase(db);
@@ -64,12 +60,12 @@ app.use((err, req, res, next) => {
 // Start Server and Auto-Seed Demo Data
 app.listen(PORT, async () => {
   console.log(`\n======================================================`);
-  console.log(`🚀 Task Manager API Server running on port ${PORT}`);
+  console.log(`🚀 TaskMaster Pro API Server running on port ${PORT}`);
   console.log(`📍 Health Check: http://localhost:${PORT}/api/health`);
   console.log(`🔥 Database Mode: ${mode.toUpperCase()} (Connected: ${isFirebaseConnected})`);
+  console.log(`💬 Live Chat Engine: Active with Manager Moderation Controls`);
   console.log(`======================================================\n`);
 
-  // Auto-seed initially
   try {
     await seedDatabase(db);
   } catch (err) {

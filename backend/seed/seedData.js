@@ -176,52 +176,56 @@ const seedUpdates = [
     isBlocker: false,
     createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
   },
+];
+
+const seedMessages = [
   {
-    id: "update_3",
-    taskId: "task_2",
-    taskTitle: "Implement REST Task CRUD Endpoints",
+    id: "msg_1",
+    channel: "general",
+    userId: "user_manager_1",
+    userName: "Sarah Jenkins",
+    userAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    userRole: "manager",
+    userDepartment: "Engineering Lead",
+    text: "📢 Sprint Announcement: Priority focus for this sprint is authentication, real-time sync, and glassmorphic UI polish. Please log your daily updates before 6 PM.",
+    isAnnouncement: true,
+    isPinned: true,
+    pinnedBy: "Sarah Jenkins",
+    reactions: { "🚀": ["user_emp_1", "user_emp_2"], "👍": ["user_emp_3"] },
+    createdAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "msg_2",
+    channel: "general",
+    userId: "user_emp_1",
+    userName: "Rahul Sharma",
+    userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    userRole: "employee",
+    userDepartment: "Mobile Frontend",
+    text: "Hey team! Just pushed the latest glass button micro-animations and spring transitions. Progress on Task #1 is at 70%.",
+    isAnnouncement: false,
+    isPinned: false,
+    reactions: { "🔥": ["user_manager_1", "user_emp_2"] },
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "msg_3",
+    channel: "general",
     userId: "user_emp_2",
     userName: "Alex Chen",
     userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-    note: "Defined Express router and implemented JWT middleware with role-based checks for managers vs employees.",
-    previousProgress: 0,
-    newProgress: 60,
-    hoursSpent: 4.5,
-    isBlocker: false,
-    createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: "update_4",
-    taskId: "task_2",
-    taskTitle: "Implement REST Task CRUD Endpoints",
-    userId: "user_emp_2",
-    userName: "Alex Chen",
-    userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-    note: "Integrated Firebase Admin SDK and verified all CRUD route tests. Status changed to Completed.",
-    previousProgress: 60,
-    newProgress: 100,
-    hoursSpent: 3.0,
-    isBlocker: false,
-    createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: "update_5",
-    taskId: "task_3",
-    taskTitle: "Design Dark Neomorphic App Badges & Icons",
-    userId: "user_emp_3",
-    userName: "Priya Patel",
-    userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-    note: "Drafted color palette (Obsidian, Cyan glow, Emerald, Rose) and badge tokens.",
-    previousProgress: 0,
-    newProgress: 45,
-    hoursSpent: 2.5,
-    isBlocker: false,
-    createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+    userRole: "employee",
+    userDepartment: "Backend & Cloud",
+    text: "Backend REST endpoints and Firestore Admin SDK sync are verified. Response times are under 40ms.",
+    isAnnouncement: false,
+    isPinned: false,
+    reactions: { "⚡": ["user_emp_1"] },
+    createdAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
   },
 ];
 
 async function seedDatabase(database) {
-  console.log("🌱 [Seed] Seeding database with demo users, tasks, and updates...");
+  console.log("🌱 [Seed] Seeding database with demo users, tasks, updates, and chat messages...");
 
   // Seed Users
   for (const user of seedUsers) {
@@ -238,15 +242,22 @@ async function seedDatabase(database) {
     await database.collection("updates").doc(update.id).set(update);
   }
 
+  // Seed Messages
+  for (const msg of seedMessages) {
+    await database.collection("messages").doc(msg.id).set(msg);
+  }
+
   console.log(`✅ [Seed] Successfully seeded:
   - ${seedUsers.length} Users (1 Manager, 3 Employees)
   - ${seedTasks.length} Tasks
-  - ${seedUpdates.length} Work Update Logs`);
+  - ${seedUpdates.length} Work Update Logs
+  - ${seedMessages.length} Chat Messages`);
 }
 
 module.exports = {
   seedUsers,
   seedTasks,
   seedUpdates,
+  seedMessages,
   seedDatabase,
 };

@@ -65,6 +65,37 @@ export const updatesAPI = {
   },
 };
 
+export const chatAPI = {
+  getMessages: async (channel = "general") => {
+    const res = await apiClient.get("/chat/messages", { params: { channel } });
+    return res.data;
+  },
+  sendMessage: async (data) => {
+    const res = await apiClient.post("/chat/messages", data);
+    return res.data;
+  },
+  togglePin: async (id) => {
+    const res = await apiClient.patch(`/chat/messages/${id}/pin`);
+    return res.data;
+  },
+  editMessage: async (id, text) => {
+    const res = await apiClient.patch(`/chat/messages/${id}`, { text });
+    return res.data;
+  },
+  deleteMessage: async (id) => {
+    const res = await apiClient.delete(`/chat/messages/${id}`);
+    return res.data;
+  },
+  toggleReaction: async (id, emoji) => {
+    const res = await apiClient.post(`/chat/messages/${id}/react`, { emoji });
+    return res.data;
+  },
+  clearChannel: async (channel) => {
+    const res = await apiClient.delete("/chat/clear", { data: { channel } });
+    return res.data;
+  },
+};
+
 export const analyticsAPI = {
   getDashboardStats: async () => {
     const res = await apiClient.get("/analytics/dashboard");

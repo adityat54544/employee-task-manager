@@ -15,6 +15,7 @@ import { TasksScreen } from "./src/screens/TasksScreen";
 import { TaskDetailScreen } from "./src/screens/TaskDetailScreen";
 import { AddUpdateScreen } from "./src/screens/AddUpdateScreen";
 import { CreateTaskScreen } from "./src/screens/CreateTaskScreen";
+import { ChatScreen } from "./src/screens/ChatScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { COLORS, GRADIENTS } from "./src/theme/colors";
 
@@ -22,7 +23,7 @@ const MainNavigator = () => {
   const { user, isManager } = useAuth();
 
   // Navigation state
-  const [currentScreen, setCurrentScreen] = useState("DASHBOARD");
+  const [currentScreen, setCurrentScreen] = useState("DASHBOARD"); // DASHBOARD, TASKS, CHAT, TASK_DETAIL, ADD_UPDATE, CREATE_TASK, PROFILE
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [selectedTaskTitle, setSelectedTaskTitle] = useState("");
   const [selectedTaskProgress, setSelectedTaskProgress] = useState(0);
@@ -66,6 +67,12 @@ const MainNavigator = () => {
           />
         )}
 
+        {currentScreen === "CHAT" && (
+          <ChatScreen
+            onNavigateToProfile={() => setCurrentScreen("PROFILE")}
+          />
+        )}
+
         {currentScreen === "TASK_DETAIL" && (
           <TaskDetailScreen
             taskId={selectedTaskId}
@@ -100,10 +107,10 @@ const MainNavigator = () => {
       </View>
 
       {/* Glassmorphic Bottom Navigation Bar */}
-      {["DASHBOARD", "TASKS", "PROFILE"].includes(currentScreen) && (
+      {["DASHBOARD", "TASKS", "CHAT", "PROFILE"].includes(currentScreen) && (
         <View style={styles.bottomNavWrapper}>
           <LinearGradient
-            colors={["rgba(19, 28, 49, 0.92)", "rgba(10, 15, 26, 0.98)"]}
+            colors={["rgba(19, 28, 49, 0.94)", "rgba(10, 15, 26, 0.98)"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={styles.bottomNav}
@@ -127,6 +134,25 @@ const MainNavigator = () => {
               </Text>
             </TouchableOpacity>
 
+            {/* Tab 2: Tasks List */}
+            <TouchableOpacity
+              onPress={() => setCurrentScreen("TASKS")}
+              style={[
+                styles.navTab,
+                currentScreen === "TASKS" && styles.navTabActive,
+              ]}
+            >
+              <Text style={styles.tabIcon}>📋</Text>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  currentScreen === "TASKS" && styles.tabLabelActive,
+                ]}
+              >
+                Tasks
+              </Text>
+            </TouchableOpacity>
+
             {/* Middle Action: Create Task (if Manager) */}
             {isManager && (
               <TouchableOpacity
@@ -144,26 +170,26 @@ const MainNavigator = () => {
               </TouchableOpacity>
             )}
 
-            {/* Tab 2: Tasks List */}
+            {/* Tab 3: Live Chat */}
             <TouchableOpacity
-              onPress={() => setCurrentScreen("TASKS")}
+              onPress={() => setCurrentScreen("CHAT")}
               style={[
                 styles.navTab,
-                currentScreen === "TASKS" && styles.navTabActive,
+                currentScreen === "CHAT" && styles.navTabActive,
               ]}
             >
-              <Text style={styles.tabIcon}>📋</Text>
+              <Text style={styles.tabIcon}>💬</Text>
               <Text
                 style={[
                   styles.tabLabel,
-                  currentScreen === "TASKS" && styles.tabLabelActive,
+                  currentScreen === "CHAT" && styles.tabLabelActive,
                 ]}
               >
-                {isManager ? "Team Tasks" : "My Tasks"}
+                Live Chat
               </Text>
             </TouchableOpacity>
 
-            {/* Tab 3: Profile */}
+            {/* Tab 4: Profile */}
             <TouchableOpacity
               onPress={() => setCurrentScreen("PROFILE")}
               style={[
@@ -215,7 +241,7 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     width: "100%",
-    maxWidth: 600,
+    maxWidth: 640,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
@@ -233,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 14,
   },
   navTabActive: {
@@ -253,9 +279,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   centerFab: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     marginTop: -20,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -265,7 +291,7 @@ const styles = StyleSheet.create({
   },
   centerFabGradient: {
     flex: 1,
-    borderRadius: 24,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
   },
