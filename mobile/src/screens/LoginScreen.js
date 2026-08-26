@@ -6,12 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { GlassCard } from "../components/GlassCard";
 import { GlassButton } from "../components/GlassButton";
+import { PasswordInput } from "../components/PasswordInput";
 import { ScreenWrapper } from "../components/ScreenWrapper";
 import { COLORS, GRADIENTS } from "../theme/colors";
 
@@ -194,13 +194,10 @@ export const LoginScreen = () => {
             />
 
             <Text style={styles.inputLabel}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor={COLORS.textMuted}
+            <PasswordInput
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              placeholder="Enter your password"
             />
 
             <GlassButton
@@ -216,7 +213,7 @@ export const LoginScreen = () => {
             <Text style={styles.inputLabel}>Full Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Rahul Sharma"
+              placeholder="e.g. Sarah Jenkins"
               placeholderTextColor={COLORS.textMuted}
               value={name}
               onChangeText={setName}
@@ -225,7 +222,7 @@ export const LoginScreen = () => {
             <Text style={styles.inputLabel}>Email Address *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. rahul@company.com"
+              placeholder="e.g. sarah.lead@company.com"
               placeholderTextColor={COLORS.textMuted}
               value={regEmail}
               onChangeText={setRegEmail}
@@ -234,13 +231,10 @@ export const LoginScreen = () => {
             />
 
             <Text style={styles.inputLabel}>Password *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="At least 6 characters"
-              placeholderTextColor={COLORS.textMuted}
+            <PasswordInput
               value={regPassword}
               onChangeText={setRegPassword}
-              secureTextEntry
+              placeholder="At least 6 characters"
             />
 
             <Text style={styles.inputLabel}>Select Your Role</Text>
@@ -266,7 +260,7 @@ export const LoginScreen = () => {
             <Text style={styles.inputLabel}>Department / Title</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Frontend Engineering"
+              placeholder="e.g. Engineering Lead & Product Manager"
               placeholderTextColor={COLORS.textMuted}
               value={department}
               onChangeText={setDepartment}

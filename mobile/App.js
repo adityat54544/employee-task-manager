@@ -1,11 +1,5 @@
 ﻿import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
@@ -17,20 +11,19 @@ import { AddUpdateScreen } from "./src/screens/AddUpdateScreen";
 import { CreateTaskScreen } from "./src/screens/CreateTaskScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
+import { ManageTeamScreen } from "./src/screens/ManageTeamScreen";
 import { COLORS, GRADIENTS } from "./src/theme/colors";
 
 const MainNavigator = () => {
-  const { user, isManager } = useAuth();
+  const { user, isManager, demoLogin } = useAuth();
 
-  // Navigation state
-  const [currentScreen, setCurrentScreen] = useState("DASHBOARD"); // DASHBOARD, TASKS, CHAT, TASK_DETAIL, ADD_UPDATE, CREATE_TASK, PROFILE
+  const [currentScreen, setCurrentScreen] = useState("DASHBOARD");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [selectedTaskTitle, setSelectedTaskTitle] = useState("");
   const [selectedTaskProgress, setSelectedTaskProgress] = useState(0);
+  const [preselectedEmployeeId, setPreselectedEmployeeId] = useState(null);
 
-  if (!user) {
-    return <LoginScreen />;
-  }
+  if (!user) return <LoginScreen />;
 
   const navigateToTaskDetail = (taskId) => {
     setSelectedTaskId(taskId);
@@ -44,21 +37,30 @@ const MainNavigator = () => {
     setCurrentScreen("ADD_UPDATE");
   };
 
+  const handleAssignTaskToEmployee = (empId) => {
+    setPreselectedEmployeeId(empId);
+    setCurrentScreen("CREATE_TASK");
+  };
+
+  const handleSwitchUser = async (userId) => {
+    await demoLogin(userId);
+    setCurrentScreen("DASHBOARD");
+  };
+
   return (
     <View style={styles.appContainer}>
       <StatusBar style="light" />
 
-      {/* Screen Body */}
       <View style={styles.screenContainer}>
         {currentScreen === "DASHBOARD" && (
           <DashboardScreen
             onNavigateToTasks={() => setCurrentScreen("TASKS")}
             onNavigateToTaskDetail={navigateToTaskDetail}
             onNavigateToCreateTask={() => setCurrentScreen("CREATE_TASK")}
+            onNavigateToManageTeam={() => setCurrentScreen("MANAGE_TEAM")}
             onNavigateToProfile={() => setCurrentScreen("PROFILE")}
           />
         )}
-
         {currentScreen === "TASKS" && (
           <TasksScreen
             onNavigateToTaskDetail={navigateToTaskDetail}
@@ -66,13 +68,9 @@ const MainNavigator = () => {
             onNavigateToProfile={() => setCurrentScreen("PROFILE")}
           />
         )}
-
         {currentScreen === "CHAT" && (
-          <ChatScreen
-            onNavigateToProfile={() => setCurrentScreen("PROFILE")}
-          />
+          <ChatScreen onNavigateToProfile={() => setCurrentScreen("PROFILE")} />
         )}
-
         {currentScreen === "TASK_DETAIL" && (
           <TaskDetailScreen
             taskId={selectedTaskId}
@@ -80,7 +78,6 @@ const MainNavigator = () => {
             onNavigateToAddUpdate={navigateToAddUpdate}
           />
         )}
-
         {currentScreen === "ADD_UPDATE" && (
           <AddUpdateScreen
             taskId={selectedTaskId}
@@ -90,14 +87,20 @@ const MainNavigator = () => {
             onUpdateSubmitted={() => setCurrentScreen("TASK_DETAIL")}
           />
         )}
-
         {currentScreen === "CREATE_TASK" && (
           <CreateTaskScreen
-            onBack={() => setCurrentScreen("DASHBOARD")}
-            onTaskCreated={() => setCurrentScreen("TASKS")}
+            preselectedEmployeeId={preselectedEmployeeId}
+            onBack={() => { setPreselectedEmployeeId(null); setCurrentScreen("DASHBOARD"); }}
+            onTaskCreated={() => { setPreselectedEmployeeId(null); setCurrentScreen("TASKS"); }}
           />
         )}
-
+        {currentScreen === "MANAGE_TEAM" && (
+          <ManageTeamScreen
+            onBack={() => setCurrentScreen("DASHBOARD")}
+            onAssignTaskToEmployee={handleAssignTaskToEmployee}
+            onSwitchUser={handleSwitchUser}
+          />
+        )}
         {currentScreen === "PROFILE" && (
           <ProfileScreen
             onBack={() => setCurrentScreen("DASHBOARD")}
@@ -106,7 +109,7 @@ const MainNavigator = () => {
         )}
       </View>
 
-      {/* Glassmorphic Bottom Navigation Bar */}
+      {/* Bottom Nav — only on primary tabs */}
       {["DASHBOARD", "TASKS", "CHAT", "PROFILE"].includes(currentScreen) && (
         <View style={styles.bottomNavWrapper}>
           <LinearGradient
@@ -115,45 +118,26 @@ const MainNavigator = () => {
             end={{ x: 0, y: 1 }}
             style={styles.bottomNav}
           >
-            {/* Tab 1: Dashboard */}
             <TouchableOpacity
               onPress={() => setCurrentScreen("DASHBOARD")}
-              style={[
-                styles.navTab,
-                currentScreen === "DASHBOARD" && styles.navTabActive,
-              ]}
+              style={[styles.navTab, currentScreen === "DASHBOARD" && styles.navTabActive]}
             >
               <Text style={styles.tabIcon}>📊</Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  currentScreen === "DASHBOARD" && styles.tabLabelActive,
-                ]}
-              >
+              <Text style={[styles.tabLabel, currentScreen === "DASHBOARD" && styles.tabLabelActive]}>
                 Overview
               </Text>
             </TouchableOpacity>
 
-            {/* Tab 2: Tasks List */}
             <TouchableOpacity
               onPress={() => setCurrentScreen("TASKS")}
-              style={[
-                styles.navTab,
-                currentScreen === "TASKS" && styles.navTabActive,
-              ]}
+              style={[styles.navTab, currentScreen === "TASKS" && styles.navTabActive]}
             >
               <Text style={styles.tabIcon}>📋</Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  currentScreen === "TASKS" && styles.tabLabelActive,
-                ]}
-              >
+              <Text style={[styles.tabLabel, currentScreen === "TASKS" && styles.tabLabelActive]}>
                 Tasks
               </Text>
             </TouchableOpacity>
 
-            {/* Middle Action: Create Task (if Manager) */}
             {isManager && (
               <TouchableOpacity
                 onPress={() => setCurrentScreen("CREATE_TASK")}
@@ -170,40 +154,22 @@ const MainNavigator = () => {
               </TouchableOpacity>
             )}
 
-            {/* Tab 3: Live Chat */}
             <TouchableOpacity
               onPress={() => setCurrentScreen("CHAT")}
-              style={[
-                styles.navTab,
-                currentScreen === "CHAT" && styles.navTabActive,
-              ]}
+              style={[styles.navTab, currentScreen === "CHAT" && styles.navTabActive]}
             >
               <Text style={styles.tabIcon}>💬</Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  currentScreen === "CHAT" && styles.tabLabelActive,
-                ]}
-              >
+              <Text style={[styles.tabLabel, currentScreen === "CHAT" && styles.tabLabelActive]}>
                 Live Chat
               </Text>
             </TouchableOpacity>
 
-            {/* Tab 4: Profile */}
             <TouchableOpacity
               onPress={() => setCurrentScreen("PROFILE")}
-              style={[
-                styles.navTab,
-                currentScreen === "PROFILE" && styles.navTabActive,
-              ]}
+              style={[styles.navTab, currentScreen === "PROFILE" && styles.navTabActive]}
             >
               <Text style={styles.tabIcon}>👤</Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  currentScreen === "PROFILE" && styles.tabLabelActive,
-                ]}
-              >
+              <Text style={[styles.tabLabel, currentScreen === "PROFILE" && styles.tabLabelActive]}>
                 Profile
               </Text>
             </TouchableOpacity>
@@ -223,18 +189,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  appContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  screenContainer: {
-    flex: 1,
-  },
+  appContainer: { flex: 1, backgroundColor: COLORS.background },
+  screenContainer: { flex: 1 },
   bottomNavWrapper: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
@@ -262,43 +221,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 14,
   },
-  navTabActive: {
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-  },
-  tabIcon: {
-    fontSize: 20,
-    marginBottom: 2,
-  },
-  tabLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
-  },
-  tabLabelActive: {
-    color: COLORS.primary,
-    fontWeight: "800",
-  },
+  navTabActive: { backgroundColor: "rgba(255, 255, 255, 0.06)" },
+  tabIcon: { fontSize: 20, marginBottom: 2 },
+  tabLabel: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "600" },
+  tabLabelActive: { color: COLORS.primary, fontWeight: "800" },
   centerFab: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 46, height: 46, borderRadius: 23,
     marginTop: -20,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.6, shadowRadius: 10, elevation: 10,
   },
   centerFabGradient: {
-    flex: 1,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
+    flex: 1, borderRadius: 23,
+    alignItems: "center", justifyContent: "center",
   },
-  centerFabIcon: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: COLORS.white,
-    marginTop: -2,
-  },
+  centerFabIcon: { fontSize: 26, fontWeight: "900", color: COLORS.white, marginTop: -2 },
 });

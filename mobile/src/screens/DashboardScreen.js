@@ -25,6 +25,7 @@ export const DashboardScreen = ({
   onNavigateToTasks,
   onNavigateToTaskDetail,
   onNavigateToCreateTask,
+  onNavigateToManageTeam,
   onNavigateToProfile,
 }) => {
   const { user, isManager } = useAuth();
@@ -173,16 +174,23 @@ export const DashboardScreen = ({
         </View>
       </AnimatedCard>
 
-      {/* Manager Action Quick Trigger */}
+      {/* Manager Action Quick Triggers */}
       {isManager && (
         <AnimatedCard delay={250}>
-          <View style={styles.managerActionRow}>
+          <View style={styles.managerActionGrid}>
             <GlassButton
-              title="+ Assign New Task to Team"
+              title="+ Assign New Task"
               onPress={onNavigateToCreateTask}
               variant="primary"
-              size="lg"
-              style={styles.assignBtn}
+              size="md"
+              style={{ flex: 1 }}
+            />
+            <GlassButton
+              title="👥 Onboard Team"
+              onPress={onNavigateToManageTeam}
+              variant="secondary"
+              size="md"
+              style={{ flex: 1 }}
             />
           </View>
         </AnimatedCard>
@@ -194,6 +202,9 @@ export const DashboardScreen = ({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>👥 Team Workload & Velocity</Text>
+              <TouchableOpacity onPress={onNavigateToManageTeam}>
+                <Text style={styles.viewAllText}>Manage Team ➔</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.teamList}>
@@ -413,11 +424,10 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontWeight: "600",
   },
-  managerActionRow: {
+  managerActionGrid: {
+    flexDirection: "row",
+    gap: 10,
     marginBottom: 20,
-  },
-  assignBtn: {
-    width: "100%",
   },
   section: {
     marginBottom: 24,

@@ -25,6 +25,14 @@ export const authAPI = {
     const res = await apiClient.get("/auth/employees");
     return res.data;
   },
+  createEmployee: async (data) => {
+    const res = await apiClient.post("/auth/create-employee", data);
+    return res.data;
+  },
+  batchGenerateEmployees: async (count = 3) => {
+    const res = await apiClient.post("/auth/batch-generate-employees", { count });
+    return res.data;
+  },
 };
 
 export const tasksAPI = {
