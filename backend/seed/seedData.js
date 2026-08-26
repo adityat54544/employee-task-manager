@@ -1,6 +1,7 @@
 ﻿const bcrypt = require("bcryptjs");
 
 const defaultPasswordHash = bcrypt.hashSync("password123", 10);
+const adityaPasswordHash = bcrypt.hashSync("aditya@123", 10);
 
 const seedUsers = [
   {
@@ -8,6 +9,7 @@ const seedUsers = [
     name: "Sarah Jenkins",
     email: "manager@company.com",
     password: defaultPasswordHash,
+    rawPassword: "password123",
     role: "manager",
     department: "Engineering Lead & Product Manager",
     employeeCode: "MGR-001",
@@ -19,6 +21,7 @@ const seedUsers = [
     name: "Rahul Sharma",
     email: "rahul@company.com",
     password: defaultPasswordHash,
+    rawPassword: "password123",
     role: "employee",
     department: "Mobile Frontend Engineer",
     employeeCode: "EMP-104",
@@ -30,6 +33,7 @@ const seedUsers = [
     name: "Alex Chen",
     email: "alex@company.com",
     password: defaultPasswordHash,
+    rawPassword: "password123",
     role: "employee",
     department: "Backend & Cloud Engineer",
     employeeCode: "EMP-108",
@@ -41,10 +45,23 @@ const seedUsers = [
     name: "Priya Patel",
     email: "priya@company.com",
     password: defaultPasswordHash,
+    rawPassword: "password123",
     role: "employee",
     department: "UI/UX & Design Systems",
     employeeCode: "EMP-112",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "user_emp_aditya",
+    name: "Aditya Tiwari",
+    email: "aditya@company.com",
+    password: adityaPasswordHash,
+    rawPassword: "aditya@123",
+    role: "employee",
+    department: "Full Stack React Native Developer",
+    employeeCode: "EMP-200",
+    avatar: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari",
     createdAt: new Date().toISOString(),
   },
 ];
@@ -86,7 +103,7 @@ const seedTasks = [
     tags: ["Node.js", "Express", "REST API", "JWT"],
     totalHoursSpent: 7.5,
     createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: "task_3",
@@ -127,22 +144,22 @@ const seedTasks = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: "task_5",
-    title: "Optimize Screen Transitions & Performance",
-    description: "Profile Expo render times, optimize FlatList rendering for large task feeds, and test smooth 60fps animations.",
-    assignedToId: "user_emp_1",
-    assignedToName: "Rahul Sharma",
-    assignedToAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    id: "task_aditya_1",
+    title: "Finish the Application Development",
+    description: "Complete the full-stack Employee Task Manager application: polish all React Native screens, finalize REST API endpoints, connect Firebase Firestore, integrate Live Chat with Manager moderation, implement password show/hide, employee creation portal, and deploy the working app to GitHub with full documentation.",
+    assignedToId: "user_emp_aditya",
+    assignedToName: "Aditya Tiwari",
+    assignedToAvatar: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari",
     createdById: "user_manager_1",
     createdByName: "Sarah Jenkins",
-    priority: "Low",
-    deadline: "2026-09-10",
-    status: "Pending",
-    progress: 0,
-    category: "Performance",
-    tags: ["React Native", "Reanimated", "Optimization"],
-    totalHoursSpent: 0,
-    createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+    priority: "High",
+    deadline: "2026-09-01",
+    status: "In Progress",
+    progress: 65,
+    category: "Full Stack Development",
+    tags: ["React Native", "Node.js", "Firebase", "Expo", "REST API", "Live Chat"],
+    totalHoursSpent: 12.5,
+    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
     updatedAt: new Date().toISOString(),
   },
 ];
@@ -155,7 +172,7 @@ const seedUpdates = [
     userId: "user_emp_1",
     userName: "Rahul Sharma",
     userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    note: "Set up Expo LinearGradient and built custom GlassCard container component with backdrop blur and glow effects.",
+    note: "Built custom GlassCard container with backdrop blur and glow effects, set up Expo LinearGradient.",
     previousProgress: 0,
     newProgress: 40,
     hoursSpent: 3.5,
@@ -169,12 +186,40 @@ const seedUpdates = [
     userId: "user_emp_1",
     userName: "Rahul Sharma",
     userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    note: "Integrated JWT Auth Context and added smooth button press spring animations with one-click demo login buttons.",
+    note: "Integrated JWT Auth Context and added smooth button press spring animations with one-click demo login.",
     previousProgress: 40,
     newProgress: 70,
     hoursSpent: 4.0,
     isBlocker: false,
     createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "update_aditya_1",
+    taskId: "task_aditya_1",
+    taskTitle: "Finish the Application Development",
+    userId: "user_emp_aditya",
+    userName: "Aditya Tiwari",
+    userAvatar: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari",
+    note: "Completed all 6 screens with glassmorphic design system, psychological color palette, and spring animations. REST API backend with JWT auth working perfectly.",
+    previousProgress: 0,
+    newProgress: 40,
+    hoursSpent: 5.5,
+    isBlocker: false,
+    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "update_aditya_2",
+    taskId: "task_aditya_1",
+    taskTitle: "Finish the Application Development",
+    userId: "user_emp_aditya",
+    userName: "Aditya Tiwari",
+    userAvatar: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari",
+    note: "Added Live Chat with Manager moderation (pin, delete, edit, emoji reactions), employee creation portal with random credential generation, and password show/hide animation.",
+    previousProgress: 40,
+    newProgress: 65,
+    hoursSpent: 7.0,
+    isBlocker: false,
+    createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
   },
 ];
 
@@ -187,77 +232,55 @@ const seedMessages = [
     userAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     userRole: "manager",
     userDepartment: "Engineering Lead",
-    text: "📢 Sprint Announcement: Priority focus for this sprint is authentication, real-time sync, and glassmorphic UI polish. Please log your daily updates before 6 PM.",
+    text: "📢 Sprint Broadcast: Priority focus this sprint — authentication flow, real-time chat sync, and glassmorphic UI polish. Log daily updates before 6 PM.",
     isAnnouncement: true,
     isPinned: true,
     pinnedBy: "Sarah Jenkins",
-    reactions: { "🚀": ["user_emp_1", "user_emp_2"], "👍": ["user_emp_3"] },
+    reactions: { "🚀": ["user_emp_1", "user_emp_2"], "👍": ["user_emp_3", "user_emp_aditya"] },
     createdAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
   },
   {
     id: "msg_2",
+    channel: "general",
+    userId: "user_emp_aditya",
+    userName: "Aditya Tiwari",
+    userAvatar: "https://api.dicebear.com/7.x/avataaars/png?seed=AdityaTiwari",
+    userRole: "employee",
+    userDepartment: "Full Stack Developer",
+    text: "Hey team! I've completed the Live Chat moderation system and password show/hide animation. Currently working on the Manager employee onboarding portal. Progress is at 65%! 🔥",
+    isAnnouncement: false,
+    isPinned: false,
+    reactions: { "🔥": ["user_manager_1", "user_emp_1"], "🚀": ["user_emp_2"] },
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "msg_3",
     channel: "general",
     userId: "user_emp_1",
     userName: "Rahul Sharma",
     userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     userRole: "employee",
     userDepartment: "Mobile Frontend",
-    text: "Hey team! Just pushed the latest glass button micro-animations and spring transitions. Progress on Task #1 is at 70%.",
+    text: "Just pushed the spring micro-animations and glassmorphic button transitions. Task #1 is at 70%!",
     isAnnouncement: false,
     isPinned: false,
-    reactions: { "🔥": ["user_manager_1", "user_emp_2"] },
-    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: "msg_3",
-    channel: "general",
-    userId: "user_emp_2",
-    userName: "Alex Chen",
-    userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-    userRole: "employee",
-    userDepartment: "Backend & Cloud",
-    text: "Backend REST endpoints and Firestore Admin SDK sync are verified. Response times are under 40ms.",
-    isAnnouncement: false,
-    isPinned: false,
-    reactions: { "⚡": ["user_emp_1"] },
+    reactions: { "👏": ["user_manager_1"] },
     createdAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
   },
 ];
 
 async function seedDatabase(database) {
-  console.log("🌱 [Seed] Seeding database with demo users, tasks, updates, and chat messages...");
+  console.log("🌱 [Seed] Seeding users, tasks, updates and chat messages...");
+  for (const user of seedUsers) await database.collection("users").doc(user.id).set(user);
+  for (const task of seedTasks) await database.collection("tasks").doc(task.id).set(task);
+  for (const update of seedUpdates) await database.collection("updates").doc(update.id).set(update);
+  for (const msg of seedMessages) await database.collection("messages").doc(msg.id).set(msg);
 
-  // Seed Users
-  for (const user of seedUsers) {
-    await database.collection("users").doc(user.id).set(user);
-  }
-
-  // Seed Tasks
-  for (const task of seedTasks) {
-    await database.collection("tasks").doc(task.id).set(task);
-  }
-
-  // Seed Updates
-  for (const update of seedUpdates) {
-    await database.collection("updates").doc(update.id).set(update);
-  }
-
-  // Seed Messages
-  for (const msg of seedMessages) {
-    await database.collection("messages").doc(msg.id).set(msg);
-  }
-
-  console.log(`✅ [Seed] Successfully seeded:
-  - ${seedUsers.length} Users (1 Manager, 3 Employees)
-  - ${seedTasks.length} Tasks
-  - ${seedUpdates.length} Work Update Logs
+  console.log(`✅ [Seed] Seeded:
+  - ${seedUsers.length} Users (1 Manager, 4 Employees incl. Aditya Tiwari)
+  - ${seedTasks.length} Tasks (incl. Aditya's "Finish the Application Development")
+  - ${seedUpdates.length} Work Logs
   - ${seedMessages.length} Chat Messages`);
 }
 
-module.exports = {
-  seedUsers,
-  seedTasks,
-  seedUpdates,
-  seedMessages,
-  seedDatabase,
-};
+module.exports = { seedUsers, seedTasks, seedUpdates, seedMessages, seedDatabase };

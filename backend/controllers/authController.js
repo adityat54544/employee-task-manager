@@ -7,18 +7,12 @@ const { seedUsers } = require("../seed/seedData");
 
 function generateToken(user) {
   return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-    },
+    { id: user.id, email: user.email, role: user.role, name: user.name },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 }
 
-// Helper: Generate Random Credentials for Instant Employee Creation
 function generateRandomCreds(name = "Employee") {
   const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -28,7 +22,7 @@ function generateRandomCreds(name = "Employee") {
   return { email, password, employeeCode };
 }
 
-// Standard Login with Email & Password
+// User Login
 async function login(req, res) {
   try {
     const { email, password } = req.body;
@@ -36,46 +30,45 @@ async function login(req, res) {
       return res.status(400).json({ success: false, message: "Email and password are required." });
     }
 
-    const usersSnapshot = await db.collection("users").where("email", "==", email.toLowerCase().trim()).get();
-    if (usersSnapshot.empty) {
+    const snap = await db.collection("users").where("email", "==", email.toLowerCase().trim()).get();
+    if (snap.empty) {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
-    const userDoc = usersSnapshot.docs[0];
-    const user = userDoc.data();
-
-    // Verify password
-    const isMatch = bcrypt.compareSync(password, user.password);
-    if (!isMatch) {
+    const user = snap.docs[0].data();
+    if (!bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
+
+    // Set presence to online on login
+    await db.collection("users").doc(user.id).update({
+      presence: "online",
+      lastActive: new Date().toISOString(),
+    });
 
     const token = generateToken(user);
-    const userProfile = { ...user };
-    delete userProfile.password;
+    const profile = { ...user, presence: "online", lastActive: new Date().toISOString() };
+    delete profile.password;
 
     return res.json({
       success: true,
       message: `Welcome back, ${user.name}!`,
       token,
-      user: userProfile,
+      user: profile,
     });
-  } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({ success: false, message: "Internal server error during login.", error: error.message });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Login error.", error: e.message });
   }
 }
 
-// Register new user (Manager or Employee)
+// Register
 async function register(req, res) {
   try {
     const { name, email, password, role = "employee", department = "Engineering" } = req.body;
-
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "Name, email, and password are required." });
     }
 
-    // Check existing
     const existing = await db.collection("users").where("email", "==", email.toLowerCase().trim()).get();
     if (!existing.empty) {
       return res.status(400).json({ success: false, message: "An account with this email already exists." });
@@ -90,37 +83,60 @@ async function register(req, res) {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password: hashedPassword,
-      rawPassword: password, // preserved for demo convenience so managers can see it
+      rawPassword: password,
       role: role.toLowerCase() === "manager" ? "manager" : "employee",
       department: department.trim(),
       employeeCode,
+      presence: "online",
       avatar: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(name)}`,
       createdAt: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
     };
 
     await db.collection("users").doc(userId).set(newUser);
-
     const token = generateToken(newUser);
-    const userProfile = { ...newUser };
-    delete userProfile.password;
+    const profile = { ...newUser };
+    delete profile.password;
 
     return res.status(201).json({
       success: true,
       message: "Account created successfully.",
       token,
-      user: userProfile,
+      user: profile,
     });
-  } catch (error) {
-    console.error("Registration error:", error);
-    return res.status(500).json({ success: false, message: "Internal server error during registration.", error: error.message });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Registration error.", error: e.message });
   }
 }
 
-// Manager Power: Create New Employee (Custom or Random Generated Credentials)
+// Update Employee Presence / Attendance Status (Online, In Focus, Break, Out of Office)
+async function updatePresence(req, res) {
+  try {
+    const { presence = "online", statusMessage = "" } = req.body;
+    const validStatuses = ["online", "focus", "break", "offline", "leave"];
+    const selected = validStatuses.includes(presence) ? presence : "online";
+
+    await db.collection("users").doc(req.user.id).update({
+      presence: selected,
+      statusMessage: statusMessage.trim(),
+      lastActive: new Date().toISOString(),
+    });
+
+    return res.json({
+      success: true,
+      message: `Work presence updated to ${selected.toUpperCase()}`,
+      presence: selected,
+      statusMessage: statusMessage.trim(),
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Update presence error.", error: e.message });
+  }
+}
+
+// Manager: Create Employee with custom/random credentials
 async function createEmployeeByManager(req, res) {
   try {
     const { name, email, password, department = "Software Engineering" } = req.body;
-
     if (!name || name.trim() === "") {
       return res.status(400).json({ success: false, message: "Employee name is required." });
     }
@@ -128,203 +144,234 @@ async function createEmployeeByManager(req, res) {
     const generated = generateRandomCreds(name.trim());
     const finalEmail = (email && email.trim() !== "") ? email.toLowerCase().trim() : generated.email;
     const finalPassword = (password && password.trim() !== "") ? password.trim() : generated.password;
-    const employeeCode = generated.employeeCode;
 
-    // Check if email exists
     const existing = await db.collection("users").where("email", "==", finalEmail).get();
     if (!existing.empty) {
-      return res.status(400).json({ success: false, message: `An account with email ${finalEmail} already exists.` });
+      return res.status(400).json({ success: false, message: `Email ${finalEmail} already exists.` });
     }
 
     const userId = "user_emp_" + uuidv4().substring(0, 8);
-    const hashedPassword = bcrypt.hashSync(finalPassword, 10);
-
     const newEmployee = {
       id: userId,
       name: name.trim(),
       email: finalEmail,
-      password: hashedPassword,
-      rawPassword: finalPassword, // for manager to review credentials
+      password: bcrypt.hashSync(finalPassword, 10),
+      rawPassword: finalPassword,
       role: "employee",
       department: department.trim(),
-      employeeCode,
+      employeeCode: generated.employeeCode,
+      presence: "offline",
       avatar: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(name.trim())}`,
       createdByManagerId: req.user.id,
       createdByManagerName: req.user.name,
       createdAt: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
     };
 
     await db.collection("users").doc(userId).set(newEmployee);
-
-    const employeeProfile = { ...newEmployee };
-    delete employeeProfile.password;
+    const profile = { ...newEmployee };
+    delete profile.password;
 
     return res.status(201).json({
       success: true,
-      message: `Employee ${name.trim()} created successfully!`,
-      credentials: {
-        email: finalEmail,
-        password: finalPassword,
-        employeeCode,
-      },
-      employee: employeeProfile,
+      message: `Employee ${name.trim()} onboarded successfully!`,
+      credentials: { email: finalEmail, password: finalPassword, employeeCode: generated.employeeCode },
+      employee: profile,
     });
-  } catch (error) {
-    console.error("createEmployeeByManager error:", error);
-    return res.status(500).json({ success: false, message: "Failed to create employee.", error: error.message });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Create employee error.", error: e.message });
   }
 }
 
-// Manager Power: Batch Generate Random Employees (e.g. 3 random employees at once)
+// Manager: Batch Generate
 async function batchGenerateEmployees(req, res) {
   try {
-    const randomProfiles = [
+    const templates = [
       { name: "Devon Vance", dept: "Frontend Mobile Engineer" },
       { name: "Maya Lin", dept: "Backend & Cloud Engineer" },
       { name: "Rohan Varma", dept: "UI/UX & Product Designer" },
-      { name: "Elena Rostova", dept: "QA & Automation Specialist" },
+      { name: "Elena Rostova", dept: "QA & Automation" },
       { name: "Tariq Mansoor", dept: "DevOps & Infrastructure" },
     ];
-
     const count = Math.min(5, Math.max(1, Number(req.body.count) || 3));
     const createdList = [];
 
     for (let i = 0; i < count; i++) {
-      const template = randomProfiles[i % randomProfiles.length];
-      const randomSuffix = Math.floor(100 + Math.random() * 900);
-      const name = `${template.name} ${randomSuffix}`;
-      const generated = generateRandomCreds(name);
-
+      const t = templates[i % templates.length];
+      const suffix = Math.floor(100 + Math.random() * 900);
+      const name = `${t.name} ${suffix}`;
+      const gen = generateRandomCreds(name);
       const userId = "user_emp_" + uuidv4().substring(0, 8);
-      const hashedPassword = bcrypt.hashSync(generated.password, 10);
 
-      const employee = {
+      const emp = {
         id: userId,
         name,
-        email: generated.email,
-        password: hashedPassword,
-        rawPassword: generated.password,
+        email: gen.email,
+        password: bcrypt.hashSync(gen.password, 10),
+        rawPassword: gen.password,
         role: "employee",
-        department: template.dept,
-        employeeCode: generated.employeeCode,
+        department: t.dept,
+        employeeCode: gen.employeeCode,
+        presence: "offline",
         avatar: `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(name)}`,
         createdByManagerId: req.user.id,
         createdByManagerName: req.user.name,
         createdAt: new Date().toISOString(),
+        lastActive: new Date().toISOString(),
       };
 
-      await db.collection("users").doc(userId).set(employee);
-
-      const profile = { ...employee };
+      await db.collection("users").doc(userId).set(emp);
+      const profile = { ...emp };
       delete profile.password;
-
-      createdList.push({
-        profile,
-        credentials: {
-          email: generated.email,
-          password: generated.password,
-          employeeCode: generated.employeeCode,
-        },
-      });
+      createdList.push({ profile, credentials: { email: gen.email, password: gen.password, employeeCode: gen.employeeCode } });
     }
 
-    return res.status(201).json({
-      success: true,
-      message: `Successfully generated ${createdList.length} random employees!`,
-      employees: createdList,
-    });
-  } catch (error) {
-    console.error("batchGenerateEmployees error:", error);
-    return res.status(500).json({ success: false, message: "Batch generation failed.", error: error.message });
+    return res.status(201).json({ success: true, message: `Generated ${createdList.length} random employees!`, employees: createdList });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Batch generation failed.", error: e.message });
   }
 }
 
-// 1-Click Demo Profiles List
+// Manager: Edit Employee Profile
+async function updateEmployee(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, department } = req.body;
+
+    const empDoc = await db.collection("users").doc(id).get();
+    if (!empDoc.exists) return res.status(404).json({ success: false, message: "Employee not found." });
+
+    const emp = empDoc.data();
+    if (emp.role === "manager") return res.status(403).json({ success: false, message: "Cannot modify manager account." });
+
+    const updates = { updatedAt: new Date().toISOString() };
+    if (name && name.trim()) updates.name = name.trim();
+    if (department && department.trim()) updates.department = department.trim();
+
+    await db.collection("users").doc(id).update(updates);
+    return res.json({ success: true, message: `Employee ${emp.name} updated successfully.`, updates });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Update employee error.", error: e.message });
+  }
+}
+
+// Manager: Delete Employee Account
+async function deleteEmployee(req, res) {
+  try {
+    const { id } = req.params;
+    if (id === req.user.id) return res.status(400).json({ success: false, message: "Cannot delete your own account." });
+
+    const empDoc = await db.collection("users").doc(id).get();
+    if (!empDoc.exists) return res.status(404).json({ success: false, message: "Employee not found." });
+
+    const emp = empDoc.data();
+    if (emp.role === "manager") return res.status(403).json({ success: false, message: "Cannot delete manager accounts." });
+
+    // Unassign their tasks
+    const tasksSnap = await db.collection("tasks").where("assignedToId", "==", id).get();
+    const batch = [];
+    tasksSnap.forEach((doc) => {
+      batch.push(db.collection("tasks").doc(doc.id).update({
+        assignedToName: `[Unassigned — ${emp.name} removed]`,
+        assignedToId: null,
+        updatedAt: new Date().toISOString(),
+      }));
+    });
+    await Promise.all(batch);
+
+    await db.collection("users").doc(id).delete();
+
+    return res.json({
+      success: true,
+      message: `Employee ${emp.name}'s account has been removed.`,
+      deletedName: emp.name,
+      tasksUnassigned: batch.length,
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Delete employee error.", error: e.message });
+  }
+}
+
 async function getDemoProfiles(req, res) {
   try {
-    const usersSnapshot = await db.collection("users").get();
+    const snap = await db.collection("users").get();
     const profiles = [];
-    usersSnapshot.forEach((doc) => {
+    snap.forEach((doc) => {
       const u = doc.data();
-      const copy = { ...u };
-      delete copy.password;
-      profiles.push(copy);
+      delete u.password;
+      profiles.push(u);
     });
-
-    if (profiles.length === 0) {
-      return res.json({ success: true, profiles: seedUsers });
-    }
-
+    if (profiles.length === 0) return res.json({ success: true, profiles: seedUsers });
     return res.json({ success: true, profiles });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Error fetching demo profiles.", error: error.message });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Error fetching demo profiles.", error: e.message });
   }
 }
 
-// 1-Click Demo Login
 async function demoLogin(req, res) {
   try {
     const { userId } = req.body;
-    if (!userId) {
-      return res.status(400).json({ success: false, message: "User ID is required for demo login." });
-    }
+    if (!userId) return res.status(400).json({ success: false, message: "User ID is required." });
 
     const userDoc = await db.collection("users").doc(userId).get();
     let user;
 
     if (!userDoc.exists) {
       const matched = seedUsers.find((u) => u.id === userId);
-      if (!matched) {
-        return res.status(404).json({ success: false, message: "User not found." });
-      }
+      if (!matched) return res.status(404).json({ success: false, message: "User not found." });
       user = matched;
       await db.collection("users").doc(user.id).set(user);
     } else {
       user = userDoc.data();
     }
 
+    await db.collection("users").doc(user.id).update({
+      presence: "online",
+      lastActive: new Date().toISOString(),
+    });
+
     const token = generateToken(user);
-    const userProfile = { ...user };
-    delete userProfile.password;
+    const profile = { ...user, presence: "online" };
+    delete profile.password;
 
     return res.json({
       success: true,
       message: `Logged in as ${user.name} (${user.role.toUpperCase()})`,
       token,
-      user: userProfile,
+      user: profile,
     });
-  } catch (error) {
-    console.error("Demo login error:", error);
-    return res.status(500).json({ success: false, message: "Error in demo login.", error: error.message });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Demo login error.", error: e.message });
   }
 }
 
-// Get current user profile
 async function getCurrentUser(req, res) {
   return res.json({ success: true, user: req.user });
 }
 
-// Get all employees for Manager dropdown assignment and team management
 async function getAllEmployees(req, res) {
   try {
-    const usersSnapshot = await db.collection("users").get();
+    const snap = await db.collection("users").get();
     const employees = [];
-    usersSnapshot.forEach((doc) => {
-      const data = doc.data();
-      delete data.password;
-      employees.push(data);
+    snap.forEach((doc) => {
+      const d = doc.data();
+      delete d.password;
+      employees.push(d);
     });
     return res.json({ success: true, employees });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Error fetching employees list.", error: error.message });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: "Error fetching employees.", error: e.message });
   }
 }
 
 module.exports = {
   login,
   register,
+  updatePresence,
   createEmployeeByManager,
   batchGenerateEmployees,
+  updateEmployee,
+  deleteEmployee,
   getDemoProfiles,
   demoLogin,
   getCurrentUser,

@@ -50,9 +50,11 @@ export const DashboardScreen = ({
           pendingTasks: 2,
           inProgressTasks: 2,
           completedTasks: 1,
+          blockedTasks: 0,
           highPriorityTasks: 2,
           completionRate: 20,
           totalHoursLogged: 17.5,
+          presenceSummary: { online: 3, focus: 1, break: 0, offline: 0 },
           recentActivity: [],
           teamBreakdown: [],
         });
@@ -87,7 +89,7 @@ export const DashboardScreen = ({
     >
       <Header onProfilePress={onNavigateToProfile} />
 
-      {/* Hero Performance Overview Card with Animated Stagger */}
+      {/* Hero Card */}
       <AnimatedCard delay={100}>
         <GlassCard style={styles.heroCard} variant="primary" glow={true}>
           <View style={styles.heroRow}>
@@ -95,7 +97,7 @@ export const DashboardScreen = ({
               <View style={styles.heroBadgeRow}>
                 <PulsingDot color={COLORS.primary} size={6} />
                 <Text style={styles.heroSubtitle}>
-                  {isManager ? "EXECUTIVE SPRINT OVERVIEW" : "PERSONAL PERFORMANCE DASHBOARD"}
+                  {isManager ? "EXECUTIVE SPRINT OVERVIEW" : "EMPLOYEE SPRINT COCKPIT"}
                 </Text>
               </View>
               <Text style={styles.heroTitle}>
@@ -103,8 +105,8 @@ export const DashboardScreen = ({
               </Text>
               <Text style={styles.heroDesc}>
                 {isManager
-                  ? "Track team delivery timelines, milestone logs & productivity"
-                  : "Keep momentum going on active assigned sprints"}
+                  ? "Track overall team velocity, presence & blocker resolution"
+                  : "Finish assigned sprint tasks and log work updates daily"}
               </Text>
             </View>
             <View style={styles.ringContainer}>
@@ -127,19 +129,45 @@ export const DashboardScreen = ({
         </GlassCard>
       </AnimatedCard>
 
-      {/* Grid of Key Psychological Metric Cards */}
+      {/* Live Company Presence & Attendance Strip */}
+      <AnimatedCard delay={150}>
+        <GlassCard style={styles.presenceStrip} variant="default">
+          <View style={styles.presenceHeader}>
+            <Text style={styles.presenceTitle}>🏢 Live Company Presence & Shifts</Text>
+            <Text style={styles.presenceSub}>Active Team Status</Text>
+          </View>
+          <View style={styles.presenceGrid}>
+            <View style={styles.presenceBox}>
+              <Text style={styles.presenceCount}>🟢 {stats?.presenceSummary?.online || 1}</Text>
+              <Text style={styles.presenceLabel}>Working</Text>
+            </View>
+            <View style={styles.presenceBox}>
+              <Text style={styles.presenceCount}>🚀 {stats?.presenceSummary?.focus || 0}</Text>
+              <Text style={styles.presenceLabel}>Deep Focus</Text>
+            </View>
+            <View style={styles.presenceBox}>
+              <Text style={styles.presenceCount}>☕ {stats?.presenceSummary?.break || 0}</Text>
+              <Text style={styles.presenceLabel}>On Break</Text>
+            </View>
+            <View style={styles.presenceBox}>
+              <Text style={styles.presenceCount}>⏱️ {stats?.totalHoursLogged || 0}h</Text>
+              <Text style={styles.presenceLabel}>Logged Today</Text>
+            </View>
+          </View>
+        </GlassCard>
+      </AnimatedCard>
+
+      {/* Metric Cards Grid */}
       <AnimatedCard delay={200}>
         <View style={styles.statsGrid}>
-          {/* Total Tasks */}
           <GlassCard style={styles.statBox} variant="default">
             <View style={styles.statIconBadge}>
               <Text style={styles.statIcon}>📋</Text>
             </View>
             <Text style={styles.statValue}>{stats?.totalTasks ?? 0}</Text>
-            <Text style={styles.statLabel}>Total Tasks</Text>
+            <Text style={styles.statLabel}>Total Sprints</Text>
           </GlassCard>
 
-          {/* In Progress */}
           <GlassCard style={styles.statBox} variant="primary">
             <View style={[styles.statIconBadge, { backgroundColor: "rgba(6, 182, 212, 0.15)" }]}>
               <Text style={styles.statIcon}>⚡</Text>
@@ -150,7 +178,6 @@ export const DashboardScreen = ({
             <Text style={styles.statLabel}>In Progress</Text>
           </GlassCard>
 
-          {/* Pending */}
           <GlassCard style={styles.statBox} variant="amber">
             <View style={[styles.statIconBadge, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
               <Text style={styles.statIcon}>⏳</Text>
@@ -158,10 +185,9 @@ export const DashboardScreen = ({
             <Text style={[styles.statValue, { color: COLORS.pending }]}>
               {stats?.pendingTasks ?? 0}
             </Text>
-            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statLabel}>Pending / Hold</Text>
           </GlassCard>
 
-          {/* Completed */}
           <GlassCard style={styles.statBox} variant="success">
             <View style={[styles.statIconBadge, { backgroundColor: "rgba(16, 185, 129, 0.15)" }]}>
               <Text style={styles.statIcon}>✓</Text>
@@ -174,7 +200,7 @@ export const DashboardScreen = ({
         </View>
       </AnimatedCard>
 
-      {/* Manager Action Quick Triggers */}
+      {/* Manager Actions */}
       {isManager && (
         <AnimatedCard delay={250}>
           <View style={styles.managerActionGrid}>
@@ -196,12 +222,12 @@ export const DashboardScreen = ({
         </AnimatedCard>
       )}
 
-      {/* Manager's Team Productivity Breakdown */}
+      {/* Team Roster Breakdown (Manager View) */}
       {isManager && stats?.teamBreakdown && stats.teamBreakdown.length > 0 && (
         <AnimatedCard delay={300}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>👥 Team Workload & Velocity</Text>
+              <Text style={styles.sectionTitle}>👥 Team Workload & Presence</Text>
               <TouchableOpacity onPress={onNavigateToManageTeam}>
                 <Text style={styles.viewAllText}>Manage Team ➔</Text>
               </TouchableOpacity>
@@ -213,13 +239,18 @@ export const DashboardScreen = ({
                   <View style={styles.teamRow}>
                     <Image source={{ uri: emp.avatar }} style={styles.teamAvatar} />
                     <View style={styles.teamInfo}>
-                      <Text style={styles.teamName}>{emp.name}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={styles.teamName}>{emp.name}</Text>
+                        <Text style={styles.presenceTag}>
+                          {emp.presence === "focus" ? "🚀 Focus" : emp.presence === "break" ? "☕ Break" : "🟢 Online"}
+                        </Text>
+                      </View>
                       <Text style={styles.teamDept}>{emp.department}</Text>
                     </View>
                     <View style={styles.teamScore}>
                       <Text style={styles.teamScoreText}>{emp.completionRate}%</Text>
                       <Text style={styles.teamScoreLabel}>
-                        {emp.completedTasks}/{emp.totalTasks} Sprints Done
+                        {emp.completedTasks}/{emp.totalTasks} Done • {emp.totalHoursLogged}h
                       </Text>
                     </View>
                   </View>
@@ -236,12 +267,12 @@ export const DashboardScreen = ({
         </AnimatedCard>
       )}
 
-      {/* Recent Tasks List Preview */}
+      {/* Recent Tasks */}
       <AnimatedCard delay={350}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {isManager ? "📌 Active Team Sprints" : "🎯 My Current Tasks"}
+              {isManager ? "📌 Active Sprints" : "🎯 My Current Tasks"}
             </Text>
             <TouchableOpacity onPress={onNavigateToTasks}>
               <Text style={styles.viewAllText}>View All ➔</Text>
@@ -271,25 +302,22 @@ export const DashboardScreen = ({
 
               <View style={styles.taskFooter}>
                 <View style={styles.assigneeRow}>
-                  <Image
-                    source={{ uri: t.assignedToAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}
-                    style={styles.assigneeAvatar}
-                  />
+                  <Image source={{ uri: t.assignedToAvatar }} style={styles.assigneeAvatar} />
                   <Text style={styles.assigneeName}>{t.assignedToName}</Text>
                 </View>
-                <Text style={styles.hoursText}>⏱️ {t.totalHoursSpent || 0} hrs logged</Text>
+                <Text style={styles.hoursText}>⏱️ {t.totalHoursSpent || 0} hrs</Text>
               </View>
             </GlassCard>
           ))}
         </View>
       </AnimatedCard>
 
-      {/* Recent Activity Timeline Feed */}
+      {/* Live Updates Stream */}
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
         <AnimatedCard delay={400}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⚡ Live Team Work Updates</Text>
+              <Text style={styles.sectionTitle}>⚡ Live Team Progress Updates</Text>
             </View>
 
             {stats.recentActivity.map((act) => (
@@ -312,7 +340,7 @@ export const DashboardScreen = ({
                       <Text style={styles.activityProgressPill}>
                         {act.previousProgress}% ➔ {act.newProgress}%
                       </Text>
-                      <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs logged</Text>
+                      <Text style={styles.activityHoursPill}>+{act.hoursSpent} hrs</Text>
                     </View>
                   </View>
                 </View>
@@ -326,299 +354,71 @@ export const DashboardScreen = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingBottom: 60,
-  },
-  heroCard: {
-    marginBottom: 20,
-    padding: 20,
-  },
-  heroRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  heroLeft: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  heroBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-    gap: 6,
-  },
-  heroSubtitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: COLORS.primary,
-    letterSpacing: 0.8,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: COLORS.textPrimary,
-    marginBottom: 6,
-  },
-  heroDesc: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-  },
-  ringContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    padding: 3,
-  },
-  rateCircle: {
-    flex: 1,
-    borderRadius: 33,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ratePercent: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: COLORS.white,
-  },
-  rateLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  heroBar: {
-    marginTop: 4,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 20,
-  },
-  statBox: {
-    width: "48%",
-    padding: 16,
-  },
-  statIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  statIcon: {
-    fontSize: 16,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
-  },
-  managerActionGrid: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingHorizontal: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-    letterSpacing: 0.3,
-  },
-  viewAllText: {
-    fontSize: 13,
-    color: COLORS.primary,
-    fontWeight: "700",
-  },
-  teamList: {
-    gap: 10,
-  },
-  teamCard: {
-    padding: 14,
-  },
-  teamRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  teamAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  teamInfo: {
-    flex: 1,
-  },
-  teamName: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-  },
-  teamDept: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  teamScore: {
-    alignItems: "flex-end",
-  },
-  teamScoreText: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: COLORS.completed,
-  },
-  teamScoreLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 1,
-  },
-  teamBar: {
-    marginTop: 10,
-  },
-  taskCard: {
-    padding: 16,
-    marginBottom: 12,
-  },
-  taskHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  taskDesc: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  taskProgressBar: {
-    marginBottom: 12,
-  },
-  taskFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
-  },
-  assigneeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  assigneeAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  assigneeName: {
-    fontSize: 12,
-    color: COLORS.textPrimary,
-    fontWeight: "700",
-  },
-  hoursText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
-  },
-  activityCard: {
-    padding: 14,
-    marginBottom: 10,
-  },
-  activityRow: {
-    flexDirection: "row",
-  },
-  activityAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    marginTop: 2,
-  },
-  activityInfo: {
-    flex: 1,
-  },
-  activityTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  activityUser: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-  },
-  activityTime: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  activityTaskTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  activityNote: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontStyle: "italic",
-    lineHeight: 17,
-    marginBottom: 6,
-  },
-  activityMetaRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  activityProgressPill: {
-    fontSize: 11,
-    color: COLORS.completed,
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    fontWeight: "800",
-  },
-  activityHoursPill: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    fontWeight: "600",
-  },
+  container: { paddingBottom: 60 },
+  heroCard: { marginBottom: 16, padding: 20 },
+  heroRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  heroLeft: { flex: 1, paddingRight: 12 },
+  heroBadgeRow: { flexDirection: "row", alignItems: "center", marginBottom: 4, gap: 6 },
+  heroSubtitle: { fontSize: 10, fontWeight: "800", color: COLORS.primary, letterSpacing: 0.8 },
+  heroTitle: { fontSize: 24, fontWeight: "900", color: COLORS.textPrimary, marginBottom: 6 },
+  heroDesc: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
+  ringContainer: { width: 72, height: 72, borderRadius: 36, padding: 3 },
+  rateCircle: { flex: 1, borderRadius: 33, alignItems: "center", justifyContent: "center" },
+  ratePercent: { fontSize: 18, fontWeight: "900", color: COLORS.white },
+  rateLabel: { fontSize: 10, fontWeight: "700", color: "rgba(255, 255, 255, 0.8)" },
+  heroBar: { marginTop: 4 },
+  presenceStrip: { padding: 14, marginBottom: 16 },
+  presenceHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  presenceTitle: { fontSize: 13, fontWeight: "800", color: COLORS.textPrimary },
+  presenceSub: { fontSize: 11, color: COLORS.textMuted },
+  presenceGrid: { flexDirection: "row", justifyContent: "space-between" },
+  presenceBox: { alignItems: "center" },
+  presenceCount: { fontSize: 14, fontWeight: "800", color: COLORS.textPrimary, marginBottom: 2 },
+  presenceLabel: { fontSize: 10, color: COLORS.textSecondary, fontWeight: "600" },
+  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 16 },
+  statBox: { width: "48%", padding: 14 },
+  statIconBadge: { width: 32, height: 32, borderRadius: 8, backgroundColor: "rgba(255, 255, 255, 0.06)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  statIcon: { fontSize: 15 },
+  statValue: { fontSize: 22, fontWeight: "900", color: COLORS.textPrimary, marginBottom: 2 },
+  statLabel: { fontSize: 11, color: COLORS.textSecondary, fontWeight: "600" },
+  managerActionGrid: { flexDirection: "row", gap: 10, marginBottom: 20 },
+  section: { marginBottom: 24 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingHorizontal: 2 },
+  sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary, letterSpacing: 0.3 },
+  viewAllText: { fontSize: 13, color: COLORS.primary, fontWeight: "700" },
+  teamList: { gap: 10 },
+  teamCard: { padding: 14 },
+  teamRow: { flexDirection: "row", alignItems: "center" },
+  teamAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12, borderWidth: 1, borderColor: COLORS.glassBorder },
+  teamInfo: { flex: 1 },
+  teamName: { fontSize: 14, fontWeight: "800", color: COLORS.textPrimary },
+  presenceTag: { fontSize: 9, color: COLORS.textMuted, backgroundColor: "rgba(255, 255, 255, 0.06)", paddingVertical: 1, paddingHorizontal: 5, borderRadius: 4 },
+  teamDept: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
+  teamScore: { alignItems: "flex-end" },
+  teamScoreText: { fontSize: 15, fontWeight: "900", color: COLORS.completed },
+  teamScoreLabel: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
+  teamBar: { marginTop: 10 },
+  taskCard: { padding: 16, marginBottom: 12 },
+  taskHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  badgeRow: { flexDirection: "row", gap: 8 },
+  taskTitle: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary, marginBottom: 4 },
+  taskDesc: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 12 },
+  taskProgressBar: { marginBottom: 12 },
+  taskFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.06)" },
+  assigneeRow: { flexDirection: "row", alignItems: "center" },
+  assigneeAvatar: { width: 24, height: 24, borderRadius: 12, marginRight: 8 },
+  assigneeName: { fontSize: 12, color: COLORS.textPrimary, fontWeight: "700" },
+  hoursText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: "600" },
+  activityCard: { padding: 14, marginBottom: 10 },
+  activityRow: { flexDirection: "row" },
+  activityAvatar: { width: 34, height: 34, borderRadius: 17, marginRight: 12, marginTop: 2 },
+  activityInfo: { flex: 1 },
+  activityTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 },
+  activityUser: { fontSize: 13, fontWeight: "800", color: COLORS.textPrimary },
+  activityTime: { fontSize: 11, color: COLORS.textMuted },
+  activityTaskTitle: { fontSize: 12, fontWeight: "700", color: COLORS.primary, marginBottom: 4 },
+  activityNote: { fontSize: 12, color: COLORS.textSecondary, fontStyle: "italic", lineHeight: 17, marginBottom: 6 },
+  activityMetaRow: { flexDirection: "row", gap: 8 },
+  activityProgressPill: { fontSize: 11, color: COLORS.completed, backgroundColor: "rgba(16, 185, 129, 0.12)", paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6, fontWeight: "800" },
+  activityHoursPill: { fontSize: 11, color: COLORS.textSecondary, backgroundColor: "rgba(255, 255, 255, 0.06)", paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6, fontWeight: "600" },
 });

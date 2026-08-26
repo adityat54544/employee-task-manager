@@ -1,123 +1,48 @@
 ﻿import apiClient from "./client";
 
 export const authAPI = {
-  login: async (email, password) => {
-    const res = await apiClient.post("/auth/login", { email, password });
-    return res.data;
-  },
-  register: async (userData) => {
-    const res = await apiClient.post("/auth/register", userData);
-    return res.data;
-  },
-  getDemoProfiles: async () => {
-    const res = await apiClient.get("/auth/demo-profiles");
-    return res.data;
-  },
-  demoLogin: async (userId) => {
-    const res = await apiClient.post("/auth/demo-login", { userId });
-    return res.data;
-  },
-  getMe: async () => {
-    const res = await apiClient.get("/auth/me");
-    return res.data;
-  },
-  getEmployees: async () => {
-    const res = await apiClient.get("/auth/employees");
-    return res.data;
-  },
-  createEmployee: async (data) => {
-    const res = await apiClient.post("/auth/create-employee", data);
-    return res.data;
-  },
-  batchGenerateEmployees: async (count = 3) => {
-    const res = await apiClient.post("/auth/batch-generate-employees", { count });
-    return res.data;
-  },
+  login: async (email, password) => { const res = await apiClient.post("/auth/login", { email, password }); return res.data; },
+  register: async (userData) => { const res = await apiClient.post("/auth/register", userData); return res.data; },
+  updatePresence: async (presence, statusMessage = "") => { const res = await apiClient.patch("/auth/presence", { presence, statusMessage }); return res.data; },
+  getDemoProfiles: async () => { const res = await apiClient.get("/auth/demo-profiles"); return res.data; },
+  demoLogin: async (userId) => { const res = await apiClient.post("/auth/demo-login", { userId }); return res.data; },
+  getMe: async () => { const res = await apiClient.get("/auth/me"); return res.data; },
+  getEmployees: async () => { const res = await apiClient.get("/auth/employees"); return res.data; },
+  createEmployee: async (data) => { const res = await apiClient.post("/auth/create-employee", data); return res.data; },
+  batchGenerateEmployees: async (count = 3) => { const res = await apiClient.post("/auth/batch-generate-employees", { count }); return res.data; },
+  updateEmployee: async (id, data) => { const res = await apiClient.patch(`/auth/employees/${id}`, data); return res.data; },
+  deleteEmployee: async (id) => { const res = await apiClient.delete(`/auth/employees/${id}`); return res.data; },
 };
 
 export const tasksAPI = {
-  getTasks: async (params = {}) => {
-    const res = await apiClient.get("/tasks", { params });
-    return res.data;
-  },
-  getTaskById: async (id) => {
-    const res = await apiClient.get(`/tasks/${id}`);
-    return res.data;
-  },
-  createTask: async (taskData) => {
-    const res = await apiClient.post("/tasks", taskData);
-    return res.data;
-  },
-  updateStatus: async (id, status) => {
-    const res = await apiClient.patch(`/tasks/${id}/status`, { status });
-    return res.data;
-  },
-  addComment: async (id, text) => {
-    const res = await apiClient.post(`/tasks/${id}/comments`, { text });
-    return res.data;
-  },
-  deleteTask: async (id) => {
-    const res = await apiClient.delete(`/tasks/${id}`);
-    return res.data;
-  },
+  getTasks: async (params = {}) => { const res = await apiClient.get("/tasks", { params }); return res.data; },
+  getTaskById: async (id) => { const res = await apiClient.get(`/tasks/${id}`); return res.data; },
+  createTask: async (taskData) => { const res = await apiClient.post("/tasks", taskData); return res.data; },
+  updateStatus: async (id, status, note = "", hoursSpent = 0) => { const res = await apiClient.patch(`/tasks/${id}/status`, { status, note, hoursSpent }); return res.data; },
+  addComment: async (id, text) => { const res = await apiClient.post(`/tasks/${id}/comments`, { text }); return res.data; },
+  deleteTask: async (id) => { const res = await apiClient.delete(`/tasks/${id}`); return res.data; },
 };
 
 export const updatesAPI = {
-  addWorkUpdate: async (taskId, updateData) => {
-    const res = await apiClient.post(`/tasks/${taskId}/updates`, updateData);
-    return res.data;
-  },
-  getTaskUpdates: async (taskId) => {
-    const res = await apiClient.get(`/tasks/${taskId}/updates`);
-    return res.data;
-  },
+  addWorkUpdate: async (taskId, updateData) => { const res = await apiClient.post(`/tasks/${taskId}/updates`, updateData); return res.data; },
+  getTaskUpdates: async (taskId) => { const res = await apiClient.get(`/tasks/${taskId}/updates`); return res.data; },
 };
 
 export const chatAPI = {
-  getMessages: async (channel = "general") => {
-    const res = await apiClient.get("/chat/messages", { params: { channel } });
-    return res.data;
-  },
-  sendMessage: async (data) => {
-    const res = await apiClient.post("/chat/messages", data);
-    return res.data;
-  },
-  togglePin: async (id) => {
-    const res = await apiClient.patch(`/chat/messages/${id}/pin`);
-    return res.data;
-  },
-  editMessage: async (id, text) => {
-    const res = await apiClient.patch(`/chat/messages/${id}`, { text });
-    return res.data;
-  },
-  deleteMessage: async (id) => {
-    const res = await apiClient.delete(`/chat/messages/${id}`);
-    return res.data;
-  },
-  toggleReaction: async (id, emoji) => {
-    const res = await apiClient.post(`/chat/messages/${id}/react`, { emoji });
-    return res.data;
-  },
-  clearChannel: async (channel) => {
-    const res = await apiClient.delete("/chat/clear", { data: { channel } });
-    return res.data;
-  },
+  getMessages: async (channel = "general") => { const res = await apiClient.get("/chat/messages", { params: { channel } }); return res.data; },
+  sendMessage: async (data) => { const res = await apiClient.post("/chat/messages", data); return res.data; },
+  togglePin: async (id) => { const res = await apiClient.patch(`/chat/messages/${id}/pin`); return res.data; },
+  editMessage: async (id, text) => { const res = await apiClient.patch(`/chat/messages/${id}`, { text }); return res.data; },
+  deleteMessage: async (id) => { const res = await apiClient.delete(`/chat/messages/${id}`); return res.data; },
+  toggleReaction: async (id, emoji) => { const res = await apiClient.post(`/chat/messages/${id}/react`, { emoji }); return res.data; },
+  clearChannel: async (channel) => { const res = await apiClient.delete("/chat/clear", { data: { channel } }); return res.data; },
 };
 
 export const analyticsAPI = {
-  getDashboardStats: async () => {
-    const res = await apiClient.get("/analytics/dashboard");
-    return res.data;
-  },
+  getDashboardStats: async () => { const res = await apiClient.get("/analytics/dashboard"); return res.data; },
 };
 
 export const systemAPI = {
-  getHealth: async () => {
-    const res = await apiClient.get("/health");
-    return res.data;
-  },
-  reseed: async () => {
-    const res = await apiClient.post("/seed");
-    return res.data;
-  },
+  getHealth: async () => { const res = await apiClient.get("/health"); return res.data; },
+  reseed: async () => { const res = await apiClient.post("/seed"); return res.data; },
 };

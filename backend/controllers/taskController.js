@@ -14,7 +14,7 @@ async function getTasks(req, res) {
       tasks.push(doc.data());
     });
 
-    // If Employee, only show tasks assigned to them (unless explicitly requested team tasks)
+    // If Employee, only show tasks assigned to them (unless team tasks explicitly requested)
     if (!isManager && !req.query.all) {
       tasks = tasks.filter((t) => t.assignedToId === req.user.id);
     } else if (assignedToId && assignedToId !== "All") {
@@ -31,7 +31,7 @@ async function getTasks(req, res) {
       tasks = tasks.filter((t) => t.priority.toLowerCase() === priority.toLowerCase());
     }
 
-    // Filter by search term
+    // Filter by search query
     if (search) {
       const q = search.toLowerCase();
       tasks = tasks.filter(
@@ -43,7 +43,7 @@ async function getTasks(req, res) {
       );
     }
 
-    // Advanced Sorting
+    // Sorting
     if (sort === "deadline_asc") {
       tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     } else if (sort === "priority_desc") {
@@ -52,7 +52,6 @@ async function getTasks(req, res) {
     } else if (sort === "progress_desc") {
       tasks.sort((a, b) => (b.progress || 0) - (a.progress || 0));
     } else {
-      // Default: newest first
       tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
@@ -162,19 +161,19 @@ async function createTask(req, res) {
   }
 }
 
-// PATCH /api/tasks/:id/status (Update Task Status: Pending -> In Progress -> Completed)
+// PATCH /api/tasks/:id/status (Full Employee & Manager Freedom: Pending, In Progress, Completed, Blocked)
 async function updateTaskStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, note = "", hoursSpent = 0 } = req.body;
 
-    const validStatuses = ["Pending", "In Progress", "Completed"];
+    const validStatuses = ["Pending", "In Progress", "Completed", "Blocked"];
     const normalizedStatus = validStatuses.find((s) => s.toLowerCase() === (status || "").toLowerCase());
 
     if (!normalizedStatus) {
       return res.status(400).json({
         success: false,
-        message: "Invalid status. Allowed values: 'Pending', 'In Progress', 'Completed'.",
+        message: "Invalid status. Allowed values: 'Pending', 'In Progress', 'Completed', 'Blocked'.",
       });
     }
 
@@ -185,7 +184,7 @@ async function updateTaskStatus(req, res) {
 
     const currentTask = taskDoc.data();
 
-    // Verify permission: Either Manager or the Assignee can change status
+    // Verify permission: Either Manager or the Assignee can update
     if (req.user.role !== "manager" && currentTask.assignedToId !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -199,24 +198,55 @@ async function updateTaskStatus(req, res) {
     } else if (normalizedStatus === "Pending") {
       updatedProgress = 0;
     } else if (normalizedStatus === "In Progress" && updatedProgress === 0) {
-      updatedProgress = 10;
+      updatedProgress = 25;
     }
 
     const updatePayload = {
       status: normalizedStatus,
       progress: updatedProgress,
+      totalHoursSpent: (currentTask.totalHoursSpent || 0) + Number(hoursSpent || 0),
       updatedAt: new Date().toISOString(),
     };
 
     await db.collection("tasks").doc(id).update(updatePayload);
 
+    // Auto-create an audit work log update for manager visibility
+    const autoNote = note || (
+      normalizedStatus === "Completed"
+        ? `🎉 Marked as Completed (100% finished by ${req.user.name})`
+        : normalizedStatus === "In Progress"
+        ? `⚡ Started working on task (Status: In Progress)`
+        : normalizedStatus === "Blocked"
+        ? `🚨 Blocker reported by ${req.user.name} — requires attention`
+        : `⏳ Task reset to Pending`
+    );
+
+    const updateId = "upd_" + uuidv4().substring(0, 8);
+    const logItem = {
+      id: updateId,
+      taskId: id,
+      taskTitle: currentTask.title,
+      userId: req.user.id,
+      userName: req.user.name,
+      userAvatar: req.user.avatar || `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(req.user.name)}`,
+      note: autoNote,
+      previousProgress: currentTask.progress,
+      newProgress: updatedProgress,
+      hoursSpent: Number(hoursSpent || 0),
+      isBlocker: normalizedStatus === "Blocked",
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection("updates").doc(updateId).set(logItem);
+
     return res.json({
       success: true,
-      message: `Status transitioned to ${normalizedStatus}`,
+      message: `Status updated to ${normalizedStatus}`,
       task: {
         ...currentTask,
         ...updatePayload,
       },
+      auditLog: logItem,
     });
   } catch (error) {
     console.error("updateTaskStatus error:", error);
@@ -224,7 +254,7 @@ async function updateTaskStatus(req, res) {
   }
 }
 
-// POST /api/tasks/:id/comments (Add Team Discussion / Feedback Comment)
+// POST /api/tasks/:id/comments
 async function addComment(req, res) {
   try {
     const { id } = req.params;
@@ -263,7 +293,7 @@ async function addComment(req, res) {
   }
 }
 
-// DELETE /api/tasks/:id (Delete Task - Manager only)
+// DELETE /api/tasks/:id (Manager only)
 async function deleteTask(req, res) {
   try {
     const { id } = req.params;

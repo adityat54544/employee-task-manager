@@ -1,160 +1,277 @@
-﻿import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+﻿import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Modal } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import { authAPI } from "../api/endpoints";
+import { GlassCard } from "./GlassCard";
 import { COLORS } from "../theme/colors";
 
-export const Header = ({ onProfilePress, onSwitchRolePress }) => {
-  const { user, isManager, dbMode } = useAuth();
+const PRESENCE_OPTIONS = [
+  { id: "online", label: "Working Online", icon: "🟢", color: "#10B981" },
+  { id: "focus", label: "Deep Focus", icon: "🚀", color: "#6366F1" },
+  { id: "break", label: "On Short Break", icon: "☕", color: "#F59E0B" },
+  { id: "leave", label: "Out of Office", icon: "🏖️", color: "#94A3B8" },
+];
+
+export const Header = ({ onProfilePress }) => {
+  const { user, isManager } = useAuth();
+  const [currentPresence, setCurrentPresence] = useState(user?.presence || "online");
+  const [presenceModalOpen, setPresenceModalOpen] = useState(false);
 
   if (!user) return null;
 
-  return (
-    <View style={styles.headerContainer}>
-      <View style={styles.leftCol}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandDot} />
-          <Text style={styles.brandTitle}>TASK<Text style={styles.brandHighlight}>MASTER</Text></Text>
-          <View style={styles.proTag}>
-            <Text style={styles.proTagText}>PRO</Text>
-          </View>
-        </View>
-        <Text style={styles.welcomeText}>
-          Welcome back, <Text style={styles.userName}>{user.name.split(" ")[0]}</Text>
-        </Text>
-      </View>
+  const currentOption = PRESENCE_OPTIONS.find((p) => p.id === currentPresence) || PRESENCE_OPTIONS[0];
 
-      <View style={styles.rightCol}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={onProfilePress}
-          style={styles.profileBadge}
-        >
+  const handleSelectPresence = async (pId) => {
+    setCurrentPresence(pId);
+    setPresenceModalOpen(false);
+    try {
+      await authAPI.updatePresence(pId);
+    } catch (e) {
+      console.log("Presence update error:", e);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.leftSection}>
+        <View style={styles.greetingRow}>
+          <Text style={styles.greeting}>Welcome,</Text>
+          <Text style={styles.userName}>{user.name.split(" ")[0]}</Text>
           <View
             style={[
-              styles.roleTag,
-              isManager ? styles.roleManager : styles.roleEmployee,
+              styles.roleBadge,
+              {
+                backgroundColor: isManager
+                  ? "rgba(139, 92, 246, 0.2)"
+                  : "rgba(99, 102, 241, 0.2)",
+                borderColor: isManager
+                  ? "rgba(139, 92, 246, 0.4)"
+                  : "rgba(99, 102, 241, 0.4)",
+              },
             ]}
           >
             <Text
               style={[
                 styles.roleText,
-                { color: isManager ? "#A78BFA" : "#67E8F9" },
+                { color: isManager ? "#C4B5FD" : "#A5B4FC" },
               ]}
             >
-              {user.role?.toUpperCase()}
+              {isManager ? "👑 LEAD" : "💻 ENG"}
             </Text>
           </View>
-          <Image
-            source={{ uri: user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" }}
-            style={[
-              styles.avatar,
-              { borderColor: isManager ? COLORS.violet : COLORS.primary },
-            ]}
-          />
+        </View>
+
+        {/* Interactive Presence Pill */}
+        <TouchableOpacity
+          onPress={() => setPresenceModalOpen(true)}
+          style={styles.presencePill}
+        >
+          <Text style={styles.presenceIcon}>{currentOption.icon}</Text>
+          <Text style={[styles.presenceLabel, { color: currentOption.color }]}>
+            {currentOption.label} ▾
+          </Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        onPress={onProfilePress}
+        activeOpacity={0.8}
+        style={styles.avatarWrapper}
+      >
+        <Image
+          source={{
+            uri:
+              user.avatar ||
+              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+          }}
+          style={[
+            styles.avatar,
+            { borderColor: isManager ? COLORS.violet : COLORS.primary },
+          ]}
+        />
+        <View
+          style={[
+            styles.statusRing,
+            { backgroundColor: currentOption.color },
+          ]}
+        />
+      </TouchableOpacity>
+
+      {/* Presence Selector Modal */}
+      <Modal
+        visible={presenceModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPresenceModalOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setPresenceModalOpen(false)}
+        >
+          <GlassCard style={styles.modalCard} variant="primary">
+            <Text style={styles.modalTitle}>Set Your Live Work Presence</Text>
+            <Text style={styles.modalSub}>
+              Let your team and manager know your current focus and availability:
+            </Text>
+
+            <View style={styles.optionsList}>
+              {PRESENCE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => handleSelectPresence(opt.id)}
+                  style={[
+                    styles.optionItem,
+                    currentPresence === opt.id && styles.optionItemActive,
+                  ]}
+                >
+                  <Text style={styles.optIcon}>{opt.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.optLabel, { color: opt.color }]}>
+                      {opt.label}
+                    </Text>
+                  </View>
+                  {currentPresence === opt.id && (
+                    <Text style={styles.checkMark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </GlassCard>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  headerContainer: {
+  container: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 22,
-    paddingHorizontal: 2,
+    marginBottom: 16,
+    paddingVertical: 4,
   },
-  leftCol: {
+  leftSection: {
     flex: 1,
   },
-  brandRow: {
+  greetingRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
     gap: 6,
   },
-  brandDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-  },
-  brandTitle: {
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    color: COLORS.textPrimary,
-  },
-  brandHighlight: {
-    color: COLORS.primary,
-  },
-  proTag: {
-    backgroundColor: "rgba(99, 102, 241, 0.2)",
-    borderWidth: 1,
-    borderColor: "rgba(99, 102, 241, 0.4)",
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-    borderRadius: 6,
-  },
-  proTagText: {
-    fontSize: 9,
-    fontWeight: "900",
-    color: "#A5B4FC",
-    letterSpacing: 0.5,
-  },
-  welcomeText: {
-    fontSize: 19,
+  greeting: {
+    fontSize: 18,
     fontWeight: "600",
     color: COLORS.textSecondary,
   },
   userName: {
+    fontSize: 20,
+    fontWeight: "900",
     color: COLORS.textPrimary,
-    fontWeight: "800",
   },
-  rightCol: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  profileBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 24,
+  roleBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
+    marginLeft: 2,
   },
-  roleTag: {
+  roleText: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
+  presencePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 8,
-    marginRight: 8,
-  },
-  roleManager: {
-    backgroundColor: "rgba(139, 92, 246, 0.18)",
     borderWidth: 1,
-    borderColor: "rgba(139, 92, 246, 0.35)",
+    borderColor: COLORS.glassBorder,
+    alignSelf: "flex-start",
+    marginTop: 4,
+    gap: 4,
   },
-  roleEmployee: {
-    backgroundColor: "rgba(6, 182, 212, 0.18)",
-    borderWidth: 1,
-    borderColor: "rgba(6, 182, 212, 0.35)",
-  },
-  roleText: {
+  presenceIcon: {
     fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+  },
+  presenceLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  avatarWrapper: {
+    position: "relative",
   },
   avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+  },
+  statusRing: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#080C14",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 380,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  modalSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
+    lineHeight: 17,
+  },
+  optionsList: {
+    gap: 8,
+  },
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    gap: 10,
+  },
+  optionItemActive: {
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    borderColor: COLORS.primary,
+  },
+  optIcon: {
+    fontSize: 16,
+  },
+  optLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  checkMark: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: "900",
   },
 });
